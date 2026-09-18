@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/api/client.ts","./src/api/usefeed.ts","./src/components/feedlist.tsx","./src/components/filters.tsx","./src/components/watchlistrail.tsx"],"version":"5.9.3"}

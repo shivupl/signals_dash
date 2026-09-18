@@ -1,0 +1,204 @@
+/* Dark, near-black, and quiet. The feed is something you glance at twenty times
+   a day, so contrast is spent on the two things you actually scan -- the ticker
+   and the score -- and everything else recedes. */
+:root {
+  --bg: #0b0c0d;
+  --shell: #131415;
+  --shell-head: #171819;
+  --rail: #151617;
+  --rule: #232527;
+  --rule-soft: #1c1e1f;
+  --ink: #e8eaec;
+  --ink-mid: #9aa0a6;
+  --ink-soft: #6b7176;
+  --critical: #e8615a;
+  --high: #d99b32;
+  --info: #5b9bd5;
+  --up: #4ea86f;
+  --down: #e8615a;
+  --live: #3fb950;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.page { max-width: 1240px; margin: 0 auto; padding: 26px 20px 60px; }
+
+/* ---- shell ---------------------------------------------------------------- */
+.shell {
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: var(--shell);
+  overflow: hidden;
+}
+
+.shell-head {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px;
+  background: var(--shell-head);
+  border-bottom: 1px solid var(--rule);
+}
+.shell-head .brand { font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
+.shell-head .meta { font-size: 14px; color: var(--ink-soft); }
+.shell-head .meta b { color: var(--ink-mid); font-weight: 500; }
+.shell-head .spacer { flex: 1; }
+
+.dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--live); flex: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--live) 18%, transparent);
+}
+.dot.stale { background: var(--high); box-shadow: 0 0 0 3px color-mix(in srgb, var(--high) 18%, transparent); }
+.dot.err { background: var(--critical); box-shadow: none; }
+
+/* pill controls */
+.pill {
+  appearance: none;
+  font: inherit; font-size: 13.5px;
+  color: var(--ink-mid);
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 5px 13px;
+  cursor: pointer;
+}
+.pill:hover { color: var(--ink); border-color: #323538; }
+.pill.on { color: var(--ink); background: #202325; border-color: #323538; }
+.pill-input {
+  width: 108px; text-align: center;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  text-transform: uppercase;
+}
+.pill-input::placeholder { color: var(--ink-soft); text-transform: none; }
+
+/* ---- body split ----------------------------------------------------------- */
+.split { display: grid; grid-template-columns: 1fr 300px; min-height: 420px; }
+@media (max-width: 880px) { .split { grid-template-columns: 1fr; } }
+
+/* ---- feed ----------------------------------------------------------------- */
+.feed { border-right: 1px solid var(--rule); }
+@media (max-width: 880px) { .feed { border-right: 0; border-bottom: 1px solid var(--rule); } }
+
+.row {
+  display: grid;
+  grid-template-columns: 0 62px 1fr auto;
+  gap: 0 14px;
+  align-items: start;
+  padding: 13px 18px 13px 18px;
+  border-bottom: 1px solid var(--rule-soft);
+  text-decoration: none; color: inherit;
+  position: relative;
+}
+.row:last-child { border-bottom: 0; }
+.row:hover { background: #18191b; }
+/* A pushed row announces itself once and then settles. No motion beyond that. */
+@keyframes arrive { from { background: #24303a; } to { background: transparent; } }
+.row.fresh { animation: arrive 6s ease-out; }
+@media (prefers-reduced-motion: reduce) { .row.fresh { animation: none; } }
+
+/* The accent bar runs the full height of the row rather than sitting inside it,
+   so a dense feed reads as bands of severity from across the room. It is
+   positioned rather than placed in a grid track, because a track stops at the
+   content box and leaves a gap at the row's padding. */
+.row .bar { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+.row.critical .bar { background: var(--critical); }
+.row.high .bar { background: var(--high); }
+.row.background .bar, .row.quiet .bar { background: var(--info); }
+
+.row .time {
+  grid-column: 2; grid-row: 1;
+  font-size: 13px; color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  padding-top: 1px;
+}
+.row .date {
+  grid-column: 2; grid-row: 2;
+  font-size: 11.5px; color: #55595d;
+  font-variant-numeric: tabular-nums;
+}
+
+.row .head { grid-column: 3; grid-row: 1; font-size: 16px; line-height: 1.35; }
+.row .tk { font-weight: 700; margin-right: 8px; letter-spacing: 0.01em; }
+.row .headline { font-weight: 400; }
+.row .detail {
+  grid-column: 3; grid-row: 2;
+  font-size: 13.5px; color: var(--ink-soft); margin-top: 2px;
+}
+
+.row .score {
+  grid-column: 4; grid-row: 1;
+  font-size: 17px; font-variant-numeric: tabular-nums;
+  padding-top: 1px;
+}
+.row.critical .score { color: var(--critical); }
+.row.high .score { color: var(--high); }
+.row.background .score, .row.quiet .score { color: var(--info); }
+
+@media (max-width: 560px) {
+  .row { grid-template-columns: 0 52px 1fr auto; padding-left: 14px; padding-right: 12px; }
+  .row .head { font-size: 15px; }
+}
+
+/* ---- rail ----------------------------------------------------------------- */
+.rail { background: var(--rail); padding: 14px 0 0; }
+.rail h2 {
+  margin: 0; padding: 0 18px 10px;
+  font-size: 14px; font-weight: 400; color: var(--ink-soft);
+}
+.rail-row {
+  display: grid; grid-template-columns: 1fr auto auto; gap: 12px;
+  align-items: baseline;
+  padding: 9px 18px;
+  font-size: 14.5px;
+  border: 0; background: none; color: inherit; width: 100%;
+  text-align: left; cursor: pointer;
+  font-family: inherit;
+}
+.rail h2.sub { padding-top: 14px; margin-top: 6px; border-top: 1px solid var(--rule-soft); }
+.rail-row.dim .tk { color: var(--ink-mid); font-weight: 400; }
+.rail-row:hover { background: #1c1d1f; }
+.rail-row.on { background: #26282a; }
+.rail-row .tk { font-weight: 500; }
+.rail-row .n { color: var(--ink-soft); font-variant-numeric: tabular-nums; font-size: 13.5px; }
+.rail-row .chg { font-size: 13.5px; font-variant-numeric: tabular-nums; min-width: 58px; text-align: right; }
+.rail-row .chg.up { color: var(--up); }
+.rail-row .chg.down { color: var(--down); }
+.rail-row .chg.crit { color: var(--critical); }
+.rail-row .chg.high { color: var(--high); }
+.rail-row .chg.info { color: var(--info); }
+.rail-row .chg.none { color: var(--ink-soft); }
+
+.row .detail .up { color: var(--up); }
+.row .detail .down { color: var(--down); }
+.rail-row .earn {
+  margin-left: 7px; padding: 0 4px; border: 1px solid var(--rule);
+  border-radius: 3px; font-size: 10px; color: var(--high); vertical-align: 1px;
+}
+
+.rail-note {
+  padding: 14px 18px; margin-top: 4px;
+  border-top: 1px solid var(--rule-soft);
+  font-size: 13.5px; color: var(--ink-soft);
+}
+
+/* Fills the feed column so its border meets the rail; the text is what is narrow. */
+.state { padding: 40px 18px; color: var(--ink-soft); font-size: 14.5px; border-right: 1px solid var(--rule); }
+.state-body { max-width: 58ch; margin: 0; }
+.state-head { color: var(--ink-mid); font-size: 16px; margin-bottom: 6px; }
+.state.err { color: var(--critical); }
+
+footer { padding: 16px 2px 0; color: #4d5256; font-size: 12.5px; }
