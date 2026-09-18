@@ -61,6 +61,14 @@ insert into price_daily (company_id, d, close) values ($1, $2, $3)
 on conflict (company_id, d) do update set close = excluded.close
 """
 
+# The close on an event's own market date, or the nearest one before it (a filing
+# accepted on a Saturday is priced at Friday's close).
+CLOSE_ON_OR_BEFORE: Final[str] = """
+select close from price_daily
+where company_id = $1 and d <= $2
+order by d desc limit 1
+"""
+
 SET_NEXT_EARNINGS: Final[str] = "update company set next_earnings = $2 where id = $1"
 
 WATCHED_COMPANIES: Final[str] = """

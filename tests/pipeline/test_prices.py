@@ -89,8 +89,13 @@ async def rig(pg_dsn: str):
 
 def flag() -> NormalizedEvent:
     return NormalizedEvent(
-        source="edgar_8k", external_id="acc-1", event_type="8k", occurred_at=NOW,
-        company_key=CompanyKey(cik="0000000001"), summary="x", payload={"items": ["4.02"]},
+        source="edgar_8k",
+        external_id="acc-1",
+        event_type="8k",
+        occurred_at=NOW,
+        company_key=CompanyKey(cik="0000000001"),
+        summary="x",
+        payload={"items": ["4.02"]},
     )
 
 
@@ -99,8 +104,14 @@ class TestStamping:
     async def test_a_flag_gets_its_price(self, rig) -> None:
         store, _ = rig
         bus = MemoryBus()
-        processor = Processor(store, Resolver(store), bus, flag_threshold=30,
-                              prices=PriceService(FakeProvider()))
+        processor = Processor(
+            store,
+            Resolver(store),
+            bus,
+            flag_threshold=30,
+            clock=FakeClock(NOW),
+            prices=PriceService(FakeProvider()),
+        )
         await processor.process(flag())
         await processor.drain()
         row = (await store.feed(FeedFilter()))[0]
@@ -111,8 +122,14 @@ class TestStamping:
         store, _ = rig
         bus = MemoryBus()
         provider = FakeProvider(delay=0.3)
-        processor = Processor(store, Resolver(store), bus, flag_threshold=30,
-                              prices=PriceService(provider))
+        processor = Processor(
+            store,
+            Resolver(store),
+            bus,
+            flag_threshold=30,
+            clock=FakeClock(NOW),
+            prices=PriceService(provider),
+        )
         started = time.monotonic()
         await processor.process(flag())
         assert time.monotonic() - started < 0.25, "the flag waited on the price"
@@ -122,8 +139,14 @@ class TestStamping:
     async def test_a_dead_price_source_costs_a_blank_and_nothing_else(self, rig) -> None:
         store, _ = rig
         bus = MemoryBus()
-        processor = Processor(store, Resolver(store), bus, flag_threshold=30,
-                              prices=PriceService(FakeProvider(fail=True)))
+        processor = Processor(
+            store,
+            Resolver(store),
+            bus,
+            flag_threshold=30,
+            clock=FakeClock(NOW),
+            prices=PriceService(FakeProvider(fail=True)),
+        )
         stats = await processor.process(flag())
         await processor.drain()
         assert stats.published == 1
@@ -133,8 +156,14 @@ class TestStamping:
         """It means "the price when the flag fired". A later write would quietly
         turn it into something else."""
         store, _ = rig
-        processor = Processor(store, Resolver(store), MemoryBus(), flag_threshold=30,
-                              prices=PriceService(FakeProvider()))
+        processor = Processor(
+            store,
+            Resolver(store),
+            MemoryBus(),
+            flag_threshold=30,
+            clock=FakeClock(NOW),
+            prices=PriceService(FakeProvider()),
+        )
         await processor.process(flag())
         await processor.drain()
         event_id = (await store.feed(FeedFilter()))[0].id
@@ -144,11 +173,89 @@ class TestStamping:
     async def test_sub_threshold_events_are_not_priced(self, rig) -> None:
         store, _ = rig
         provider = FakeProvider()
-        processor = Processor(store, Resolver(store), MemoryBus(), flag_threshold=99,
-                              prices=PriceService(provider))
+        processor = Processor(
+            store,
+            Resolver(store),
+            MemoryBus(),
+            flag_threshold=99,
+            clock=FakeClock(NOW),
+            prices=PriceService(provider),
+        )
         await processor.process(flag())
         await processor.drain()
         assert provider.quotes == 0
+
+
+@pytest.mark.pg
+class TestLateDiscovery:
+    """price_at means the price AT THE EVENT, not when we happened to notice it.
+
+    Found live: the reconciliation sweep surfaced a director's purchase from three
+    days earlier and stamped it with that afternoon's quote, 18.11. The stock had
+    closed at 15.25 on the day of the purchase -- so the feed read "0.0% since"
+    when the truth was +18.8%.
+    """
+
+    async def test_an_old_event_is_priced_at_its_own_close(self, rig) -> None:
+        store, cid = rig
+        await store.upsert_price_daily(cid, NOW.date(), Decimal("15.25"))
+        provider = FakeProvider(price="18.11")
+        three_days_later = FakeClock(NOW + timedelta(days=3))
+        processor = Processor(
+            store,
+            Resolver(store),
+            MemoryBus(),
+            flag_threshold=30,
+            clock=three_days_later,
+            prices=PriceService(provider),
+        )
+        await processor.process(flag())
+        await processor.drain()
+        assert (await store.feed(FeedFilter()))[0].price_at == Decimal("15.25")
+        assert provider.quotes == 0, "a live quote was requested for a stale event"
+
+    async def test_a_weekend_filing_takes_the_prior_close(self, rig) -> None:
+        store, cid = rig
+        await store.upsert_price_daily(cid, NOW.date() - timedelta(days=2), Decimal("14.00"))
+        processor = Processor(
+            store,
+            Resolver(store),
+            MemoryBus(),
+            flag_threshold=30,
+            clock=FakeClock(NOW + timedelta(days=3)),
+            prices=PriceService(FakeProvider()),
+        )
+        await processor.process(flag())
+        await processor.drain()
+        assert (await store.feed(FeedFilter()))[0].price_at == Decimal("14.00")
+
+    async def test_no_close_on_record_leaves_it_blank_rather_than_wrong(self, rig) -> None:
+        store, _ = rig
+        processor = Processor(
+            store,
+            Resolver(store),
+            MemoryBus(),
+            flag_threshold=30,
+            clock=FakeClock(NOW + timedelta(days=3)),
+            prices=PriceService(FakeProvider()),
+        )
+        await processor.process(flag())
+        await processor.drain()
+        assert (await store.feed(FeedFilter()))[0].price_at is None
+
+    async def test_a_fresh_event_still_takes_the_live_quote(self, rig) -> None:
+        store, _ = rig
+        processor = Processor(
+            store,
+            Resolver(store),
+            MemoryBus(),
+            flag_threshold=30,
+            clock=FakeClock(NOW + timedelta(minutes=2)),
+            prices=PriceService(FakeProvider(price="63.55")),
+        )
+        await processor.process(flag())
+        await processor.drain()
+        assert (await store.feed(FeedFilter()))[0].price_at == Decimal("63.55")
 
 
 @pytest.mark.pg
@@ -168,8 +275,14 @@ class TestRefresh:
 
     async def test_change_since_the_flag(self, rig) -> None:
         store, cid = rig
-        processor = Processor(store, Resolver(store), MemoryBus(), flag_threshold=30,
-                              prices=PriceService(FakeProvider(price="100")))
+        processor = Processor(
+            store,
+            Resolver(store),
+            MemoryBus(),
+            flag_threshold=30,
+            clock=FakeClock(NOW),
+            prices=PriceService(FakeProvider(price="100")),
+        )
         await processor.process(flag())
         await processor.drain()
         await store.upsert_price_daily(cid, datetime.now(tz=UTC).date(), Decimal("91.8"))
@@ -191,6 +304,11 @@ class TestRefresh:
     async def test_a_failing_provider_does_not_stop_the_loop(self, rig) -> None:
         store, _ = rig
         clock = FakeClock()
-        await run_price_loop(store, PriceService(FakeProvider(fail=True)), clock,
-                             MarketCalendar.load(), max_iterations=3)
+        await run_price_loop(
+            store,
+            PriceService(FakeProvider(fail=True)),
+            clock,
+            MarketCalendar.load(),
+            max_iterations=3,
+        )
         assert len(clock.sleeps) == 3

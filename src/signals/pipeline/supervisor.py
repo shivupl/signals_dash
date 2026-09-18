@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from ..adapters.edgar_backfill import EdgarBackfillAdapter
 from ..adapters.edgar_index import build_edgar_adapters
 from ..adapters.halts import HaltsAdapter
 from ..bus.base import Publisher
@@ -59,6 +60,7 @@ async def run_worker(
         watched_only=watched_only,
         started_at=clock.now(),
         prices=prices,
+        clock=clock,
     )
 
     # Loaded once at startup: the Form 4 adapter uses it to decide whether a
@@ -70,7 +72,7 @@ async def run_worker(
     # adapter reads as "no filter".
     watched_tickers = await store.watched_tickers() if watched_only else frozenset()
 
-    adapters = [*build_edgar_adapters(), HaltsAdapter()]
+    adapters = [*build_edgar_adapters(), HaltsAdapter(), EdgarBackfillAdapter()]
     runners = [
         AdapterRunner(
             adapter,

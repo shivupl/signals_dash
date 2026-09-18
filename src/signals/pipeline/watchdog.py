@@ -26,6 +26,16 @@ STALE_AFTER_MINUTES = 30.0
 CHECK_EVERY = 60.0
 
 
+def stale_after(interval_seconds: float) -> float:
+    """Minutes of silence that count as stale for an adapter polling this often.
+
+    Thirty minutes for anything fast. A slow adapter gets two and a half of its
+    own intervals -- the half-hourly reconciliation sweep would otherwise trip a
+    thirty-minute alarm every time it ran on schedule.
+    """
+    return max(STALE_AFTER_MINUTES, interval_seconds / 60.0 * 2.5)
+
+
 class Watchdog:
     def __init__(
         self,
@@ -49,13 +59,14 @@ class Watchdog:
             name = runner.adapter.name
             since = runner.health.last_success or self._started
             quiet = self._calendar.ingest_minutes_between(since, now)
-            if quiet >= STALE_AFTER_MINUTES and name not in self._stale:
+            limit = stale_after(runner.adapter.interval)
+            if quiet >= limit and name not in self._stale:
                 self._stale.add(name)
                 changed.append(name)
                 await self._emit(
                     name, since, now, stale=True, error=runner.health.last_error, quiet=quiet
                 )
-            elif quiet < STALE_AFTER_MINUTES and name in self._stale:
+            elif quiet < limit and name in self._stale:
                 self._stale.discard(name)
                 changed.append(name)
                 await self._emit(name, since, now, stale=False, error=None, quiet=quiet)

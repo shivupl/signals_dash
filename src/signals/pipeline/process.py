@@ -5,9 +5,10 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from ..bus.base import BusMessage, Publisher
+from ..clock import EASTERN, Clock, SystemClock
 from ..models import NormalizedEvent, ResolvedEvent, Score
 from ..prices import PriceService
 from ..resolve.resolver import Resolver
@@ -17,6 +18,9 @@ from ..store.base import Store
 from .promote import Promoter, count_cluster_insiders
 
 log = logging.getLogger(__name__)
+
+#: Past this age a live quote no longer describes the price at the event.
+STALE_QUOTE_AFTER = timedelta(minutes=30)
 
 
 @dataclass
@@ -51,6 +55,7 @@ class Processor:
         watched_only: bool = True,
         started_at: datetime | None = None,
         prices: PriceService | None = None,
+        clock: Clock | None = None,
     ) -> None:
         self._store = store
         self._resolver = resolver
@@ -58,6 +63,7 @@ class Processor:
         self._threshold = flag_threshold
         self._watched_only = watched_only
         self._prices = prices
+        self._clock = clock or SystemClock()
         self._background: set[asyncio.Task[None]] = set()
         self._promoter = Promoter(store, publisher, flag_threshold=flag_threshold)
         #: When this worker began watching. A filing accepted before that was
@@ -130,7 +136,9 @@ class Processor:
             # the time a quote is even requested, so a slow or dead price source
             # costs a blank number and nothing else.
             if self._prices is not None and company is not None and company.ticker:
-                task = asyncio.create_task(self._stamp_price(event_id, company.ticker))
+                task = asyncio.create_task(
+                    self._stamp_price(event_id, company.id, company.ticker, event.occurred_at)
+                )
                 self._background.add(task)
                 task.add_done_callback(self._background.discard)
 
@@ -141,11 +149,26 @@ class Processor:
             stats.promoted = len(promotion.promoted)
         return stats
 
-    async def _stamp_price(self, event_id: int, ticker: str) -> None:
-        """Record the price when the flag fired. It cannot be reconstructed later."""
+    async def _stamp_price(
+        self, event_id: int, company_id: int, ticker: str, occurred_at: datetime
+    ) -> None:
+        """Record the price at the event. It cannot be reconstructed later.
+
+        "At the event", not "when we noticed". A filing found late -- by the
+        reconciliation sweep, or in the backlog at startup -- is priced at the
+        close of its own market date. Stamping it with a live quote would make
+        every late discovery read "0.0% since", which is wrong exactly when the
+        number is most interesting: one such flag was a director's purchase three
+        days and 18.8% earlier.
+        """
         assert self._prices is not None
         try:
-            price = await self._prices.quote(ticker)
+            age = self._clock.now() - occurred_at
+            if age > STALE_QUOTE_AFTER:
+                market_date = occurred_at.astimezone(EASTERN).date()
+                price = await self._store.close_on_or_before(company_id, market_date)
+            else:
+                price = await self._prices.quote(ticker)
             if price is None:
                 return
             await self._store.stamp_price_at(event_id, price)

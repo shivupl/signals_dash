@@ -177,6 +177,10 @@ class PgStore:
     async def upsert_price_daily(self, company_id: int, d: date, close: Decimal) -> None:
         await self._pool.execute(q.UPSERT_PRICE_DAILY, company_id, d, close)
 
+    async def close_on_or_before(self, company_id: int, d: date) -> Decimal | None:
+        value = await self._pool.fetchval(q.CLOSE_ON_OR_BEFORE, company_id, d)
+        return Decimal(value) if value is not None else None
+
     async def set_next_earnings(self, company_id: int, when: date | None) -> None:
         await self._pool.execute(q.SET_NEXT_EARNINGS, company_id, when)
 
