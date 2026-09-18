@@ -82,7 +82,11 @@ class AdapterRunner:
                 self._record_failure(f"rate limited: {exc}")
                 await self._clock.sleep(exc.retry_after or self._backoff())
                 continue
-            except (TransientSourceError, PermanentSourceError) as exc:
+            except TransientSourceError as exc:
+                self._record_failure(str(exc), expected=True)
+                await self._clock.sleep(self._backoff())
+                continue
+            except PermanentSourceError as exc:
                 self._record_failure(str(exc))
                 await self._clock.sleep(self._backoff())
                 continue
@@ -116,15 +120,27 @@ class AdapterRunner:
         return self._calendar.is_ingest_window(now)
 
     def _backoff(self) -> float:
-        return min(
-            self.adapter.interval * (BACKOFF_FACTOR**self.health.consecutive_failures),
-            MAX_BACKOFF,
-        )
+        """No penalty for a first failure; escalate only when it repeats.
 
-    def _record_failure(self, message: str) -> None:
+        One-off failures are routine here -- a stale connection, a CDN challenge
+        page -- and the next attempt almost always succeeds. Backing off after a
+        single miss just widens the hole in coverage. A second consecutive
+        failure is the first sign of a real problem, and that is where the
+        multiplier starts.
+        """
+        repeats = max(0, self.health.consecutive_failures - 1)
+        return min(self.adapter.interval * (BACKOFF_FACTOR**repeats), MAX_BACKOFF)
+
+    def _record_failure(self, message: str, *, expected: bool = False) -> None:
         self.health.consecutive_failures += 1
         self.health.last_error = message
-        log.warning(
+        # A single transient miss is normal operation, not news. It becomes a
+        # warning when it repeats, and the watchdog covers sustained silence.
+        level = (
+            logging.INFO if expected and self.health.consecutive_failures == 1 else logging.WARNING
+        )
+        log.log(
+            level,
             "adapter=%s failure=%s consecutive=%d",
             self.adapter.name,
             message,

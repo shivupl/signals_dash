@@ -171,6 +171,24 @@ class TestBackoff:
         assert 42.0 in clock.sleeps
 
 
+class TestFirstFailureIsFree:
+    async def test_a_single_miss_retries_at_the_normal_interval(self) -> None:
+        """One-off failures are routine -- a stale connection, a CDN challenge --
+        and backing off after one just widens the hole in coverage."""
+        clock = FakeClock(OPEN)
+        adapter = FakeAdapter(script=[TransientSourceError("blip")], interval=2.0)
+        runner = make_runner(adapter, clock)
+        await runner.run(max_iterations=1)
+        assert clock.sleeps == [2.0]
+
+    async def test_the_multiplier_starts_at_the_second_consecutive_failure(self) -> None:
+        clock = FakeClock(OPEN)
+        adapter = FakeAdapter(script=[TransientSourceError("x")] * 3, interval=2.0)
+        runner = make_runner(adapter, clock)
+        await runner.run(max_iterations=3)
+        assert clock.sleeps == [2.0, 8.0, 32.0]
+
+
 class TestScheduling:
     async def test_paces_itself_to_the_interval(self) -> None:
         clock = FakeClock(OPEN)

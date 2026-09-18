@@ -101,12 +101,27 @@ class Watchdog:
             )
         )
 
+    def _log_health(self) -> None:
+        """One line every ten minutes: enough to see a trend, not enough to drown."""
+        for runner in self._runners:
+            h = runner.health
+            log.info(
+                "health adapter=%s ok_iterations=%d consecutive_failures=%d stored=%d published=%d",
+                h.name,
+                h.iterations,
+                h.consecutive_failures,
+                h.stats.stored,
+                h.stats.published,
+            )
+
     async def run(self, max_iterations: int | None = None) -> None:
         iterations = 0
         while max_iterations is None or iterations < max_iterations:
             iterations += 1
             try:
                 await self.check()
+                if iterations % 10 == 0:
+                    self._log_health()
             except Exception:  # noqa: BLE001 -- the watchdog must outlive what it watches
                 log.exception("watchdog check failed")
             await self._clock.sleep(CHECK_EVERY)

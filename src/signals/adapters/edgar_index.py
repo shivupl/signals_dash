@@ -37,9 +37,13 @@ from .base import Adapter, FetchContext
 # for 8-K also returns 8-K/A. So every adapter declares the base forms it accepts
 # and the rest are discarded after parsing, before anything is stored.
 INDEX_URL: Final[str] = (
-    "https://www.sec.gov/cgi-bin/browse-edgar"
-    "?action=getcurrent&type={form}&count=100&output=atom"
+    "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type={form}&count=100&output=atom"
 )
+
+
+#: Send a second index request if the first has not answered by now. Typical
+#: response time is 0.2-0.4 s; anything past three seconds is a tail event.
+INDEX_HEDGE_AFTER: Final[float] = 3.0
 
 
 def index_url(form: str) -> str:
@@ -169,7 +173,9 @@ class EdgarIndexAdapter:
         out: list[RawEvent] = []
         seen: set[str] = set()
         for form in self.forms:
-            payload = await ctx.http.get_bytes(index_url(form), priority=Priority.HIGH)
+            payload = await ctx.http.get_bytes(
+                index_url(form), priority=Priority.HIGH, hedge_after=INDEX_HEDGE_AFTER
+            )
 
             # The feed is re-served unchanged most of the time. Hashing it skips
             # the parse, which is CPU rather than requests -- the request was

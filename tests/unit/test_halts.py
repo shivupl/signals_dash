@@ -238,3 +238,41 @@ class TestAdapterLifecycle:
     async def test_not_gated_to_market_hours(self) -> None:
         """News halts land pre-market, which is when they matter most."""
         assert HaltsAdapter.market_hours_only is False
+
+
+class TestBotChallenge:
+    """The feed's CDN intermittently answers 200 with a JavaScript challenge page
+    instead of RSS -- about 8% of polls at a ten-second interval. It is recognised
+    and skipped, never solved or worked around."""
+
+    CHALLENGE = read_fixture("errors", "halts_bot_challenge.html")
+
+    def test_the_real_challenge_page_is_not_mistaken_for_a_feed(self) -> None:
+        from signals.adapters.halts import looks_like_feed
+
+        assert looks_like_feed(self.CHALLENGE) is False
+        assert looks_like_feed(REAL) is True
+        assert looks_like_feed(feed([])) is True
+
+    async def test_it_raises_transient_not_a_parser_traceback(self) -> None:
+        from signals.errors import TransientSourceError
+
+        holder = {"body": self.CHALLENGE}
+        adapter, ctx = HaltsAdapter(), ctx_for(holder)
+        with pytest.raises(TransientSourceError, match="challenge"):
+            await adapter.fetch(ctx)
+
+    async def test_the_next_good_poll_carries_on_normally(self) -> None:
+        from signals.errors import TransientSourceError
+
+        holder = {"body": self.CHALLENGE}
+        adapter, ctx = HaltsAdapter(), ctx_for(holder)
+        with pytest.raises(TransientSourceError):
+            await adapter.fetch(ctx)
+        holder["body"] = feed([{"sym": "RKLB"}])
+        assert len(await adapter.fetch(ctx)) == 1
+
+    def test_polls_no_faster_than_the_feed_asks(self) -> None:
+        """The feed declares a one-minute TTL; hammering it is what draws the
+        challenge pages in the first place."""
+        assert HaltsAdapter().interval >= 30

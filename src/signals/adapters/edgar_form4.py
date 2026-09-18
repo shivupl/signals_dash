@@ -33,7 +33,7 @@ from ..parsers.edgar_atom import AccessionGroup, group_by_accession, parse_atom
 from ..parsers.form4_xml import Form4Doc, Form4ParseError, parse_form4
 from ..ratelimit import Priority
 from .base import FetchContext
-from .edgar_index import index_url
+from .edgar_index import INDEX_HEDGE_AFTER, index_url
 
 log = logging.getLogger(__name__)
 
@@ -121,7 +121,9 @@ class EdgarForm4Adapter:
 
     async def fetch(self, ctx: FetchContext) -> Sequence[RawEvent]:
         state = self._state(ctx)
-        payload = await ctx.http.get_bytes(index_url("4"), priority=Priority.HIGH)
+        payload = await ctx.http.get_bytes(
+            index_url("4"), priority=Priority.HIGH, hedge_after=INDEX_HEDGE_AFTER
+        )
 
         digest = hash(payload)
         if ctx.state.get("digest:4") == digest:
@@ -161,8 +163,13 @@ class EdgarForm4Adapter:
             log.info(
                 "form4 hydrated=%d skipped_unwatched=%d waiting=%d grace_expired=%d "
                 "hint_mismatch=%d parse_fail=%d fetch_fail=%d",
-                c.hydrated, c.skipped_unwatched, c.waiting_for_issuer,
-                c.grace_expired, c.hint_mismatch, c.parse_failures, c.fetch_failures,
+                c.hydrated,
+                c.skipped_unwatched,
+                c.waiting_for_issuer,
+                c.grace_expired,
+                c.hint_mismatch,
+                c.parse_failures,
+                c.fetch_failures,
             )
         return out
 

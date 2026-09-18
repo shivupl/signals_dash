@@ -130,3 +130,86 @@ class TestLimiters:
             UA, transport=transport(lambda r: httpx.Response(200, content=b"ok"))
         ) as client:
             assert await client.get_bytes("https://www.sec.gov/x", priority=Priority.LOW) == b"ok"
+
+
+class TestTimeout:
+    async def test_the_timeout_is_generous(self) -> None:
+        """EDGAR's getcurrent CGI has heavy-tailed latency: 0.2 s typically, with
+        spikes of 10-40 s. A short timeout was tried and made things strictly
+        worse -- it aborted requests SEC was about to answer."""
+        async with SourceClient(UA) as client:
+            assert client._client.timeout.read >= 20
+
+
+class TestHedging:
+    """Slow responses are independent of one another, so when the first request
+    hangs, a second usually returns in a fraction of a second."""
+
+    @staticmethod
+    def slow_then_fast(delays: list[float]):
+        calls = {"n": 0}
+
+        async def handler(request: httpx.Request) -> httpx.Response:
+            import asyncio
+
+            index = calls["n"]
+            calls["n"] += 1
+            await asyncio.sleep(delays[min(index, len(delays) - 1)])
+            return httpx.Response(200, content=f"response-{index}".encode())
+
+        return handler, calls
+
+    async def test_a_fast_first_response_sends_no_hedge(self) -> None:
+        handler, calls = self.slow_then_fast([0.0])
+        async with SourceClient(UA, transport=httpx.MockTransport(handler)) as client:
+            body = await client.get_bytes("https://www.sec.gov/x", hedge_after=0.2)
+        assert body == b"response-0"
+        assert calls["n"] == 1
+        assert client.hedges_sent == 0
+
+    async def test_a_hanging_first_request_is_overtaken(self) -> None:
+        import time
+
+        handler, calls = self.slow_then_fast([2.0, 0.0])
+        async with SourceClient(UA, transport=httpx.MockTransport(handler)) as client:
+            started = time.monotonic()
+            body = await client.get_bytes("https://www.sec.gov/x", hedge_after=0.05)
+            elapsed = time.monotonic() - started
+        assert body == b"response-1"
+        assert elapsed < 1.0, "waited for the slow request instead of the hedge"
+        assert (client.hedges_sent, client.hedges_won) == (1, 1)
+
+    async def test_the_first_request_can_still_win(self) -> None:
+        handler, _calls = self.slow_then_fast([0.15, 2.0])
+        async with SourceClient(UA, transport=httpx.MockTransport(handler)) as client:
+            body = await client.get_bytes("https://www.sec.gov/x", hedge_after=0.05)
+        assert body == b"response-0"
+        assert (client.hedges_sent, client.hedges_won) == (1, 0)
+
+    async def test_one_failure_does_not_sink_the_pair(self) -> None:
+        calls = {"n": 0}
+
+        async def handler(request: httpx.Request) -> httpx.Response:
+            import asyncio
+
+            calls["n"] += 1
+            if calls["n"] == 1:
+                await asyncio.sleep(0.1)
+                return httpx.Response(503)
+            return httpx.Response(200, content=b"ok")
+
+        async with SourceClient(UA, transport=httpx.MockTransport(handler)) as client:
+            assert await client.get_bytes("https://www.sec.gov/x", hedge_after=0.02) == b"ok"
+
+    async def test_both_failing_raises(self) -> None:
+        async with SourceClient(
+            UA, transport=httpx.MockTransport(lambda r: httpx.Response(503))
+        ) as client:
+            with pytest.raises(TransientSourceError):
+                await client.get_bytes("https://www.sec.gov/x", hedge_after=0.0)
+
+    async def test_without_hedge_after_nothing_changes(self) -> None:
+        handler, calls = self.slow_then_fast([0.1])
+        async with SourceClient(UA, transport=httpx.MockTransport(handler)) as client:
+            await client.get_bytes("https://www.sec.gov/x")
+        assert calls["n"] == 1

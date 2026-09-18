@@ -24,6 +24,7 @@ from datetime import datetime
 from typing import Final
 
 from ..clock import eastern_to_utc
+from ..errors import TransientSourceError
 from ..models import CompanyKey, NormalizedEvent, RawEvent
 from ..parsers.halts_rss import HaltItem, parse_halts
 from ..ratelimit import Priority
@@ -33,6 +34,11 @@ from .base import FetchContext
 
 FEED_URL: Final[str] = "https://www.nasdaqtrader.com/rss.aspx?feed=tradehalts"
 MAX_TRACKED: Final[int] = 5000
+
+
+def looks_like_feed(payload: bytes) -> bool:
+    head = payload[:300].lstrip(b"\xef\xbb\xbf").lstrip().lower()
+    return head.startswith(b"<?xml") or head.startswith(b"<rss")
 
 
 def halt_instant(item: HaltItem) -> datetime:
@@ -74,11 +80,21 @@ class HaltsAdapter:
     # when they matter most.
     market_hours_only = False
 
-    def __init__(self, *, interval: float = 10.0) -> None:
+    # The feed declares <ttl>1</ttl> -- cache for a minute -- and sits behind a
+    # CDN that intermittently answers with a bot challenge instead of the feed.
+    # Polling every ten seconds drew a challenge on roughly 8% of requests. Thirty
+    # seconds is still fast for a halt, and being polite is what keeps the feed.
+    def __init__(self, *, interval: float = 30.0) -> None:
         self.interval = interval
 
     async def fetch(self, ctx: FetchContext) -> Sequence[RawEvent]:
         payload = await ctx.http.get_bytes(FEED_URL, priority=Priority.HIGH)
+
+        if not looks_like_feed(payload):
+            # A 200 with an HTML body: the CDN's JavaScript bot challenge. It is
+            # not solved or worked around -- this poll is skipped and the next one
+            # almost always gets the feed.
+            raise TransientSourceError("halts: CDN returned a challenge page, not the feed")
 
         digest = hash(payload)
         if ctx.state.get("digest") == digest:
@@ -94,11 +110,7 @@ class HaltsAdapter:
             market_wide = item.reason in MARKET_WIDE_REASONS
             # Filter before anything else, or hundreds of volatility pauses a day
             # reach the resolver for companies nobody is watching.
-            if (
-                not market_wide
-                and ctx.watched_tickers
-                and item.symbol not in ctx.watched_tickers
-            ):
+            if not market_wide and ctx.watched_tickers and item.symbol not in ctx.watched_tickers:
                 continue
             # Emit only on a transition: new halt, quotes resumed, trading resumed.
             key = _market_key(item) if market_wide else item.natural_key

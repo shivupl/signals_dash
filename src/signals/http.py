@@ -11,6 +11,7 @@ fails.
 
 from __future__ import annotations
 
+import asyncio
 from types import TracebackType
 from typing import Any
 
@@ -39,7 +40,8 @@ class SourceClient:
         *,
         clock: Clock | None = None,
         transport: httpx.AsyncBaseTransport | None = None,
-        timeout: float = 15.0,
+        timeout: float = 30.0,
+        http2: bool = True,
     ) -> None:
         if not user_agent.strip():
             raise ValueError("user_agent is required: SEC returns 403 without one")
@@ -49,12 +51,19 @@ class SourceClient:
                 "User-Agent": user_agent,
                 "Accept-Encoding": "gzip, deflate",
             },
-            timeout=timeout,
-            http2=True,
+            # Generous on purpose. EDGAR's getcurrent CGI has heavy-tailed latency
+            # -- measured at 0.2 s typically, with independent spikes of 10-40 s and
+            # occasional phases where everything is slow. A short timeout was tried
+            # and made things strictly worse: it aborted requests SEC was about to
+            # answer. Slow requests are dodged by hedging instead (see `get`).
+            timeout=httpx.Timeout(timeout, connect=10.0),
+            http2=http2,
             follow_redirects=True,
             transport=transport,
         )
         self._limiters: dict[str, HostLimiter] = {}
+        self.hedges_sent = 0
+        self.hedges_won = 0
 
     def limiter_for(self, host: str) -> HostLimiter:
         if host not in self._limiters:
@@ -68,9 +77,63 @@ class SourceClient:
         *,
         priority: Priority = Priority.HIGH,
         headers: dict[str, str] | None = None,
+        hedge_after: float | None = None,
         **kwargs: Any,
     ) -> httpx.Response:
-        """Fetch a URL, or raise a Transient/Permanent error the runner can act on."""
+        """Fetch a URL, or raise a Transient/Permanent error the runner can act on.
+
+        With ``hedge_after`` set, a second identical request is sent if the first
+        has not answered in that many seconds, and whichever finishes first wins.
+        The endpoint's slow responses are independent of one another, so the
+        second attempt usually returns in a fraction of a second while the first
+        is still hanging. Both draw from the rate limiter, so hedging can never
+        push the client past its budget.
+        """
+        if hedge_after is not None:
+            return await self._hedged(url, hedge_after, priority=priority, headers=headers)
+        return await self._get_once(url, priority=priority, headers=headers, **kwargs)
+
+    async def _hedged(
+        self,
+        url: str,
+        hedge_after: float,
+        *,
+        priority: Priority,
+        headers: dict[str, str] | None,
+    ) -> httpx.Response:
+        first = asyncio.create_task(self._get_once(url, priority=priority, headers=headers))
+        done, _ = await asyncio.wait({first}, timeout=hedge_after)
+        if done:
+            return first.result()
+
+        self.hedges_sent += 1
+        second = asyncio.create_task(self._get_once(url, priority=priority, headers=headers))
+        pending = {first, second}
+        failure: BaseException | None = None
+        try:
+            while pending:
+                done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+                for task in done:
+                    if task.exception() is None:
+                        if task is second:
+                            self.hedges_won += 1
+                        return task.result()
+                    failure = task.exception()
+            assert failure is not None
+            raise failure
+        finally:
+            for task in (first, second):
+                if not task.done():
+                    task.cancel()
+
+    async def _get_once(
+        self,
+        url: str,
+        *,
+        priority: Priority = Priority.HIGH,
+        headers: dict[str, str] | None = None,
+        **kwargs: Any,
+    ) -> httpx.Response:
         host = httpx.URL(url).host
         limiter = self.limiter_for(host)
 
@@ -109,9 +172,15 @@ class SourceClient:
         limiter.reset()
         return response
 
-    async def get_bytes(self, url: str, *, priority: Priority = Priority.HIGH) -> bytes:
+    async def get_bytes(
+        self,
+        url: str,
+        *,
+        priority: Priority = Priority.HIGH,
+        hedge_after: float | None = None,
+    ) -> bytes:
         """Parsers take bytes, so this is the shape almost every caller wants."""
-        return (await self.get(url, priority=priority)).content
+        return (await self.get(url, priority=priority, hedge_after=hedge_after)).content
 
     async def aclose(self) -> None:
         await self._client.aclose()
