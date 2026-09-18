@@ -74,7 +74,10 @@ def create_app() -> FastAPI:
 
         @app.get("/")
         async def index() -> FileResponse:
-            return FileResponse(STATIC / "index.html")
+            # index.html names the hashed bundle, so it must always be revalidated;
+            # cached, a rebuild stays invisible until a hard reload. The hashed
+            # assets themselves can be cached forever.
+            return FileResponse(STATIC / "index.html", headers={"Cache-Control": "no-cache"})
 
     return app
 

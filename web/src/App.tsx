@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchWatchlist, type WatchlistEntry } from "./api/client";
 import { useDebounced, useFeed } from "./api/useFeed";
-import { FeedList } from "./components/FeedList";
+import { FeedList, marketDay } from "./components/FeedList";
 import { Filters, type FilterState } from "./components/Filters";
 import { WatchlistRail } from "./components/WatchlistRail";
 
@@ -31,9 +31,9 @@ export default function App() {
     void fetchWatchlist().then(setWatchlist).catch(() => setWatchlist([]));
   }, [events.length]);
 
-  const today = new Date().toDateString();
+  const today = marketDay(new Date());
   const todayCount = events.filter(
-    (e) => new Date(e.occurred_at).toDateString() === today,
+    (e) => marketDay(e.occurred_at) === today,
   ).length;
 
   // Green only when flags are being pushed. Amber means it still works, but by
@@ -60,7 +60,7 @@ export default function App() {
             Signals
           </span>
           <span className="meta mono">
-            <b>{countLabel}</b> · <b>{watchlist.length}</b> watched
+            <b>{countLabel}</b> · <b>{watchlist.length}</b> watched · times ET
           </span>
           <span className="spacer" />
           <Filters value={filters} onChange={setFilters} />

@@ -1,11 +1,22 @@
 import type { SignalEvent } from "../api/client";
 
+// Market time, always. Rendering in the viewer's own zone turns a 16:05 post-close
+// 8-K into "13:05" on the west coast, which reads as mid-session and is wrong in
+// the way that matters.
+export const MARKET_TZ = "America/New_York";
+
 function timeOf(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
+    timeZone: MARKET_TZ,
   });
+}
+
+/** The calendar day in market time -- what "today" has to mean here. */
+export function marketDay(when: Date | string): string {
+  return new Date(when).toLocaleDateString("en-CA", { timeZone: MARKET_TZ });
 }
 
 export function pct(value: number): string {
@@ -15,7 +26,11 @@ export function pct(value: number): string {
 }
 
 function dayOf(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: MARKET_TZ,
+  });
 }
 
 export function FeedList({
@@ -49,7 +64,7 @@ export function FeedList({
   return (
     <div className="feed">
       {events.map((event) => {
-        const isToday = new Date(event.occurred_at).toDateString() === today;
+        const isToday = marketDay(event.occurred_at) === today;
         return (
           <a
             key={event.id}
