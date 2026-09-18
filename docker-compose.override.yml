@@ -1,0 +1,26 @@
+# Dev-only. Publishes the datastores to the host so psql/redis-cli and the test
+# suite can reach them, and bind-mounts source for reload.
+services:
+  postgres:
+    ports: ["5432:5432"]
+  redis:
+    ports: ["6379:6379"]
+  worker:
+    volumes:
+      - ./src:/app/src
+      - ./config:/app/config
+      - ./tests:/app/tests
+      - ./scripts:/app/scripts
+      - ./db:/app/db
+      # Config only -- the install itself still comes from the image build, so
+      # changing dependencies means `docker compose build`, not just a restart.
+      - ./pyproject.toml:/app/pyproject.toml:ro
+  api:
+    command: python -m signals api --reload
+    volumes:
+      - ./src:/app/src
+      - ./config:/app/config
+      - ./pyproject.toml:/app/pyproject.toml:ro
+      # The built UI, served from / so `make up` is the whole story.
+      # Rebuild it with `make web`.
+      - ./web/dist:/app/web/dist:ro

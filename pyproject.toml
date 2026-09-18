@@ -1,0 +1,87 @@
+[project]
+name = "signals"
+version = "0.1.0"
+description = "A personal corporate-signals monitor: public filings and halts, scored onto one feed."
+requires-python = ">=3.12"
+dependencies = [
+    "httpx[http2]>=0.27",
+    "asyncpg>=0.29",
+    "redis>=5.0",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "lxml>=5.2",
+    "pydantic>=2.8",
+    "pyyaml>=6.0",
+    "yfinance>=0.2.40",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-socket>=0.7",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "import-linter>=2.0",
+    "types-PyYAML>=6.0",
+    "lxml-stubs>=0.5",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "pg: requires a live Postgres (the compose service). Deselect with -m 'not pg'.",
+]
+filterwarnings = ["error::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC", "DTZ"]
+# DTZ is deliberately on: it catches naive datetime construction, which is the
+# bug class most likely to corrupt this project's latency numbers.
+
+[tool.mypy]
+python_version = "3.12"
+packages = ["signals"]
+mypy_path = "src"
+strict = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["yfinance.*", "pytest_socket.*", "asyncpg.*"]
+ignore_missing_imports = true
+
+# The layering rule that keeps parsers and scoring pure -- and therefore keeps
+# ~70% of the test suite free of IO. Enforced, not merely documented.
+[tool.importlinter]
+root_package = "signals"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "parsers are pure: no IO, no clock, no config"
+type = "forbidden"
+source_modules = ["signals.parsers"]
+forbidden_modules = [
+    "httpx", "asyncpg", "redis", "yfinance",
+    "signals.clock", "signals.config", "signals.store", "signals.bus",
+]
+
+[[tool.importlinter.contracts]]
+name = "scoring depends only on models and tables"
+type = "forbidden"
+source_modules = ["signals.scoring"]
+forbidden_modules = [
+    "httpx", "asyncpg", "redis", "yfinance",
+    "signals.store", "signals.bus", "signals.adapters", "signals.pipeline",
+]
