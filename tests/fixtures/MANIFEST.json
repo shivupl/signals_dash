@@ -1,0 +1,93 @@
+{
+  "edgar/atom_13d_current.xml": {
+    "bytes": "500",
+    "captured_at": "2026-09-16T21:06:33.861384+00:00",
+    "sha256": "0255642ff1f599c4dd310f67e202dfe2233e567a35e210aff4c506f39a20fada",
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=SC%2013D&count=100&output=atom"
+  },
+  "edgar/atom_13g_current.xml": {
+    "bytes": "500",
+    "captured_at": "2026-09-16T21:06:36.856252+00:00",
+    "sha256": "9bf3a3c03d3b605ea5ab5ac2818067c258b5c4b17d76e84785a6a5005366dde7",
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=SC%2013G&count=100&output=atom"
+  },
+  "edgar/atom_8k_current.xml": {
+    "bytes": "70749",
+    "captured_at": "2026-09-16T21:06:31.542152+00:00",
+    "sha256": "344c582be73b377b708ca29ff1573a4b58ca74e6b719ea851771c7ddf25ba592",
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&count=100&output=atom"
+  },
+  "edgar/atom_form4_current.xml": {
+    "bytes": "56312",
+    "captured_at": "2026-09-16T21:06:30.455141+00:00",
+    "sha256": "08306e658f778de5f8c7a69434de5b7c0903a5b05a72cd74aa05cb31ab98ea64",
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=4&count=100&output=atom"
+  },
+  "edgar/company_tickers.json": {
+    "bytes": "797759",
+    "captured_at": "2026-09-16T21:06:20.843894+00:00",
+    "sha256": "82cd5fd9ccffda811b93ba76070460dd41429c02c00e726f83deb71f553c6cff",
+    "url": "https://www.sec.gov/files/company_tickers.json"
+  },
+  "edgar/form4_10b5_1.txt": {
+    "bytes": "12757",
+    "captured_at": "2026-09-17T08:07:34.998154+00:00",
+    "note": "full submission text; the XML sits inside <XML></XML>",
+    "sha256": "edd2bfbe05a8085569d0c1d1b459e0d70e6cbf36057860fd475d5892dcb028d9",
+    "url": "https://www.sec.gov/Archives/edgar/data/.../form4_10b5_1.txt"
+  },
+  "edgar/form4_award_only.txt": {
+    "bytes": "11176",
+    "captured_at": "2026-09-17T08:07:35.002718+00:00",
+    "note": "full submission text; the XML sits inside <XML></XML>",
+    "sha256": "28e65f8f041469b70da740ab76f9a680347e14d409d368d9a4cf98be20937bf8",
+    "url": "https://www.sec.gov/Archives/edgar/data/.../form4_award_only.txt"
+  },
+  "edgar/form4_many_txns.txt": {
+    "bytes": "60114",
+    "captured_at": "2026-09-17T08:07:35.002838+00:00",
+    "note": "full submission text; the XML sits inside <XML></XML>",
+    "sha256": "551a45950f44f886a9f6b4923145fafdc5518a893f255e1a3ee847f6cdad1003",
+    "url": "https://www.sec.gov/Archives/edgar/data/.../form4_many_txns.txt"
+  },
+  "edgar/form4_multi_txn.txt": {
+    "bytes": "8092",
+    "captured_at": "2026-09-17T08:07:35.003155+00:00",
+    "note": "full submission text; the XML sits inside <XML></XML>",
+    "sha256": "1e459b4bd6efcf0dba891ccaadfc9cb1d96f570afbc22edc8c9578e6ec4826c7",
+    "url": "https://www.sec.gov/Archives/edgar/data/.../form4_multi_txn.txt"
+  },
+  "edgar/form4_officer_title.txt": {
+    "bytes": "5331",
+    "captured_at": "2026-09-17T08:07:35.003242+00:00",
+    "note": "full submission text; the XML sits inside <XML></XML>",
+    "sha256": "e527354cb9fc761bcfb225b37a3e379cbcf427c3c21ca0a03c3feb5b05c36a5e",
+    "url": "https://www.sec.gov/Archives/edgar/data/.../form4_officer_title.txt"
+  },
+  "edgar/form4_purchase_P.txt": {
+    "bytes": "14795",
+    "captured_at": "2026-09-17T08:07:35.003318+00:00",
+    "note": "full submission text; the XML sits inside <XML></XML>",
+    "sha256": "664a1d61b20440393a43e1e31ffa1a6e1c628ee755e3aa45f32cc2d3ce010ab2",
+    "url": "https://www.sec.gov/Archives/edgar/data/.../form4_purchase_P.txt"
+  },
+  "edgar/form4_sale.txt": {
+    "bytes": "4658",
+    "captured_at": "2026-09-17T08:07:35.003430+00:00",
+    "note": "full submission text; the XML sits inside <XML></XML>",
+    "sha256": "b19fe059bea5598452d51137443cf8d40e5926e498685bbe0e16f6bf26fc4348",
+    "url": "https://www.sec.gov/Archives/edgar/data/.../form4_sale.txt"
+  },
+  "edgar/submissions_CIK0000320193.json": {
+    "bytes": "164091",
+    "captured_at": "2026-09-16T21:06:37.666871+00:00",
+    "sha256": "cb90ffafc5b6f997b60aa109e07008223ad35abe896ec7918fd43652b4057329",
+    "url": "https://data.sec.gov/submissions/CIK0000320193.json"
+  },
+  "halts/tradehalts_current.xml": {
+    "bytes": "189992",
+    "captured_at": "2026-09-16T21:06:38.974388+00:00",
+    "sha256": "302d6b0da80c312a25da6198ee092f1cd135b624df1319faf601e199b50cc9b6",
+    "url": "https://www.nasdaqtrader.com/rss.aspx?feed=tradehalts"
+  }
+}

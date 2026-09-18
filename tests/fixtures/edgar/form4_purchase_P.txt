@@ -1,0 +1,175 @@
+<SEC-DOCUMENT>0001628280-26-062352.txt : 20260916
+<SEC-HEADER>0001628280-26-062352.hdr.sgml : 20260916
+<ACCEPTANCE-DATETIME>20260916214130
+ACCESSION NUMBER:		0001628280-26-062352
+CONFORMED SUBMISSION TYPE:	4
+PUBLIC DOCUMENT COUNT:		2
+CONFORMED PERIOD OF REPORT:	20260915
+FILED AS OF DATE:		20260916
+DATE AS OF CHANGE:		20260916
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			Bucella Michael C.
+		CENTRAL INDEX KEY:			0001915351
+		ORGANIZATION NAME:           	
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	001-41163
+		FILM NUMBER:		261385104
+
+	MAIL ADDRESS:	
+		STREET 1:		C/O TERAWULF INC.
+		STREET 2:		9 FEDERAL STREET
+		CITY:			EASTON
+		STATE:			MD
+		ZIP:			21601
+
+ISSUER:		
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			TERAWULF INC.
+		CENTRAL INDEX KEY:			0001083301
+		STANDARD INDUSTRIAL CLASSIFICATION:	FINANCE SERVICES [6199]
+		ORGANIZATION NAME:           	09 Crypto Assets
+		EIN:				871909475
+		STATE OF INCORPORATION:			DE
+		FISCAL YEAR END:			1231
+
+	BUSINESS ADDRESS:	
+		STREET 1:		9 FEDERAL STREET
+		CITY:			EASTON
+		STATE:			MD
+		ZIP:			21601
+		BUSINESS PHONE:		(410) 770-9500
+
+	MAIL ADDRESS:	
+		STREET 1:		9 FEDERAL STREET
+		CITY:			EASTON
+		STATE:			MD
+		ZIP:			21601
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	IKONICS CORP
+		DATE OF NAME CHANGE:	20021216
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	CHROMALINE CORP
+		DATE OF NAME CHANGE:	19990405
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4
+<SEQUENCE>1
+<FILENAME>wk-form4_1789609288.xml
+<DESCRIPTION>FORM 4
+<TEXT>
+<XML>
+<?xml version="1.0"?>
+<ownershipDocument>
+
+    <schemaVersion>X0609</schemaVersion>
+
+    <documentType>4</documentType>
+
+    <periodOfReport>2026-09-15</periodOfReport>
+
+    <notSubjectToSection16>0</notSubjectToSection16>
+
+    <issuer>
+        <issuerCik>0001083301</issuerCik>
+        <issuerName>TERAWULF INC.</issuerName>
+        <issuerTradingSymbol>WULF</issuerTradingSymbol>
+        <issuerForeignTradingSymbol></issuerForeignTradingSymbol>
+    </issuer>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001915351</rptOwnerCik>
+            <rptOwnerName>Bucella Michael C.</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerNonUSAddressFlag>false</rptOwnerNonUSAddressFlag>
+            <rptOwnerStreet1>C/O TERAWULF INC.</rptOwnerStreet1>
+            <rptOwnerStreet2>9 FEDERAL STREET</rptOwnerStreet2>
+            <rptOwnerCity>EASTON</rptOwnerCity>
+            <rptOwnerState>MD</rptOwnerState>
+            <rptOwnerZipCode>21601</rptOwnerZipCode>
+            <rptOwnerStateDescription></rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>1</isDirector>
+            <isOfficer>0</isOfficer>
+            <isTenPercentOwner>0</isTenPercentOwner>
+            <isOther>0</isOther>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <aff10b5One>0</aff10b5One>
+
+    <nonDerivativeTable>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Common stock, $0.001 par value per share</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2026-09-15</value>
+            </transactionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>P</transactionCode>
+                <equitySwapInvolved>0</equitySwapInvolved>
+            </transactionCoding>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>6085</value>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>14.785</value>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>A</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>350789</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>D</value>
+                </directOrIndirectOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+    </nonDerivativeTable>
+
+    <derivativeTable></derivativeTable>
+
+    <footnotes></footnotes>
+
+    <remarks></remarks>
+
+    <ownerSignature>
+        <signatureName>/s/ Stefanie C. Fleischmann, as attorney-in-fact for Michael C. Bucella</signatureName>
+        <signatureDate>2026-09-16</signatureDate>
+    </ownerSignature>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+<DOCUMENT>
+<TYPE>EX-24
+<SEQUENCE>2
+<FILENAME>wulf-michaelbucellas16powe.htm
+<DESCRIPTION>EX-24
+<TEXT>
+<html><head>
+<!-- Document created using Wdesk -->
+<!-- Copyright 2026 Workiva -->
+<title>Document</title></head><body><div id="i889e46fad19b417fa26e3ff2d9642d60_1"></div><div style="min-height:72pt;width:100%"><div><font><br></font></div></div><div style="margin-bottom:12pt;text-align:center"><font style="color:#000000;font-family:'Times New Roman',serif;font-size:11pt;font-weight:700;line-height:120%;text-decoration:underline">POWER OF ATTORNEY</font></div><div style="margin-bottom:12pt;text-indent:72pt"><font style="color:#000000;font-family:'Times New Roman',serif;font-size:11pt;font-weight:400;line-height:120%">KNOW ALL BY THESE PRESENTS, that the undersigned hereby constitutes and appoints each of Stefanie Fleischmann, Ari Goldberg and William Tanimoto, each signing SINGLY, the undersigned&#8217;s true and lawful attorney-in-fact to&#58;</font></div><div style="margin-bottom:12pt;text-indent:72pt"><font style="color:#000000;font-family:'Times New Roman',serif;font-size:11pt;font-weight:400;line-height:120%">(1)&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;execute for and on behalf of the undersigned, in the undersigned&#8217;s capacity as an officer, director or holder of 10% or more of the registered class of securities of TeraWulf Inc. (the &#8220;</font><font style="color:#000000;font-family:'Times New Roman',serif;font-size:11pt;font-style:italic;font-weight:700;line-height:120%">Company</font><font style="color:#000000;font-family:'Times New Roman',serif;font-size:11pt;font-weight:400;line-height:120%">&#8221;), Forms 3, 4 and 5 in accordance with Section 16(a) of the Securities Exchange Act of 1934, as amended, and the rules thereunder&#59;</font></div><div style="margin-bottom:12pt;text-indent:72pt"><font style="color:#000000;font-family:'Times New Roman',serif;font-size:11pt;font-weight:400;line-height:120%">(2)&#160;&#160;&#160;&#160;execute for and on behalf of the undersigned, in the undersigned&#8217;s capacity as beneficial owner of 5% or more of the registered class of securities of the Company, Schedules 13D and amendments thereto, in accordance with the Securities Exchange Act of 1934, as amended, and the rules thereunder&#59;</font></div><div style="margin-bottom:12pt;text-indent:72pt"><font style="color:#000000;font-family:'Times New Roman',serif;font-size:11pt;font-weight:400;line-height:120%">(3)&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;do and perform any and all acts for and on behalf of the undersigned that may be necessary or desirable to complete and execute any such Form 3, 4 or 5 or Schedule 13D filing, complete and execute any amendment or amendments thereto and timely file such forms or amendments with the United States Securities and Exchange Commission and any stock exchange or similar authority&#59; and</font></div><div style="margin-bottom:12pt;text-indent:72pt"><font style="color:#000000;font-family:'Times New Roman',serif;font-size:11pt;font-weight:400;line-height:120%">(4)&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;take any other action of any type whatsoever in connection with the foregoing which, in the opinion of such attorney-in-fact, may be of benefit, in the best interest of, or legally required by, the undersigned, it being understood that the documents executed by such attorney-in-fact on behalf of the undersigned pursuant to this Power of Attorney shall be in such form and shall contain such terms and conditions as such attorney-in-fact may approve in such attorney-in-fact&#8217;s discretion.</font></div><div style="margin-bottom:12pt;text-indent:72pt"><font style="color:#000000;font-family:'Times New Roman',serif;font-size:11pt;font-weight:400;line-height:120%">The undersigned hereby grants to each such attorney-in-fact full power and authority to do and perform any and every act and thing whatsoever requisite, necessary or proper to be done in the exercise of any of the rights and powers herein granted, as fully to all intents and purposes as the undersigned might or could do if personally present, with full power of substitution or revocation, hereby ratifying and confirming all that such attorney-in-fact, or such attorney-in-fact&#8217;s substitute or substitutes, shall lawfully do or cause to be done by virtue of this power of attorney and the rights and powers herein granted. The undersigned acknowledges that the foregoing attorneys-in- fact, serving in such capacity at the request of the undersigned, are not assuming, nor is the Company assuming, any of the undersigned&#8217;s responsibilities to comply with Sections 13 and 16 of the Exchange Act.</font></div><div style="margin-bottom:12pt;text-indent:72pt"><font style="color:#000000;font-family:'Times New Roman',serif;font-size:11pt;font-weight:400;line-height:120%">This Power of Attorney shall remain in full force and effect until the undersigned is no longer required to file Forms 3, 4 and 5 or Schedule 13D respect to the undersigned&#8217;s holdings of and transactions in securities issued by the Company, unless earlier revoked by the undersigned in a signed writing delivered to the foregoing attorneys-in-fact.</font></div><div style="margin-bottom:12pt;text-indent:72pt"><font><br></font></div><div style="margin-bottom:12pt;text-align:center"><font style="color:#000000;font-family:'Times New Roman',serif;font-size:11pt;font-weight:400;line-height:120%">*&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; *&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; * &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;* &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;*</font></div><div style="margin-bottom:12pt;text-indent:72pt"><font style="color:#000000;font-family:'Times New Roman',serif;font-size:12pt;font-weight:400;line-height:120%">&#160;</font></div><div style="height:72pt;position:relative;width:100%"><div style="bottom:0;position:absolute;width:100%"><div style="text-align:center"><font><br></font></div></div></div><hr style="page-break-after:always"><div style="min-height:72pt;width:100%"><div><font><br></font></div></div><div><table style="border-collapse:collapse;display:inline-table;margin-bottom:5pt;vertical-align:text-bottom;width:100.000%"><tr><td style="width:1.0%"></td><td style="width:31.900%"></td><td style="width:0.1%"></td><td style="width:1.0%"></td><td style="width:32.900%"></td><td style="width:0.1%"></td><td style="width:1.0%"></td><td style="width:31.900%"></td><td style="width:0.1%"></td></tr><tr><td colspan="3" style="padding:1.5pt 1pt;text-align:left;vertical-align:top"><div style="margin-bottom:12pt;padding-right:-2.63pt;text-indent:72pt"><font style="color:#000000;font-family:'Times New Roman',serif;font-size:12pt;font-weight:400;line-height:120%">&#160;</font></div></td><td colspan="3" style="padding:1.5pt 1pt;text-align:left;vertical-align:top"><div style="margin-bottom:12pt;padding-right:-2.63pt;text-indent:72pt"><font style="color:#000000;font-family:'Times New Roman',serif;font-size:12pt;font-weight:400;line-height:120%">&#160;</font></div></td><td colspan="3" style="padding:1.5pt 1pt;text-align:left;vertical-align:top"><div style="margin-bottom:12pt;padding-right:-2.63pt;text-indent:72pt"><font style="color:#000000;font-family:'Times New Roman',serif;font-size:12pt;font-weight:400;line-height:120%">&#160;</font></div></td></tr></table></div><div style="margin-bottom:12pt;text-indent:72pt"><font style="color:#000000;font-family:'Times New Roman',serif;font-size:11pt;font-weight:400;line-height:120%">&#160;</font><font style="color:#000000;font-family:'Times New Roman',serif;font-size:11pt;font-weight:700;line-height:120%">IN WITNESS WHEREOF</font><font style="color:#000000;font-family:'Times New Roman',serif;font-size:11pt;font-weight:400;line-height:120%">, the undersigned has caused this Power of Attorney to be executed as of this 16th day of September, 2026.</font><font style="color:#000000;font-family:'Times New Roman',serif;font-size:11pt;font-weight:700;line-height:120%">&#160;&#160;&#160;&#160;</font></div><div><table style="border-collapse:collapse;display:inline-table;margin-bottom:5pt;vertical-align:text-bottom;width:79.687%"><tr><td style="width:1.0%"></td><td style="width:56.416%"></td><td style="width:0.1%"></td><td style="width:1.0%"></td><td style="width:41.384%"></td><td style="width:0.1%"></td></tr><tr><td colspan="3" style="padding:1.5pt 1pt;text-align:left;vertical-align:top"><div style="padding-left:0.02pt;text-align:right"><font style="color:#000000;font-family:'Times New Roman',serif;font-size:11pt;font-weight:400;line-height:125%">By&#58;</font></div></td><td colspan="3" style="padding:1.5pt 1pt;text-align:left;vertical-align:top"><div style="padding-left:0.02pt"><font style="color:#000000;font-family:'Times New Roman',serif;font-size:11pt;font-weight:400;line-height:125%">&#47;s&#47; Michael C. Bucella</font></div></td></tr><tr><td colspan="3" style="padding:0 1pt"></td><td colspan="3" style="border-top:1pt solid #000;padding:1.5pt 1pt;text-align:left;vertical-align:top"><div style="padding-left:0.02pt"><font style="color:#000000;font-family:'Times New Roman',serif;font-size:11pt;font-weight:400;line-height:125%">Michael C. Bucella</font></div></td></tr></table></div><div style="margin-bottom:12pt;text-indent:72pt"><font style="color:#000000;font-family:'Times New Roman',serif;font-size:11pt;font-weight:700;line-height:120%"> </font></div><div style="margin-bottom:12pt;text-indent:72pt"><font><br></font></div><div style="margin-bottom:12pt;text-indent:72pt"><font style="color:#000000;font-family:'Times New Roman',serif;font-size:12pt;font-weight:400;line-height:120%">&#160;</font></div><div style="margin-bottom:12pt;text-indent:72pt"><font><br></font></div><div style="height:72pt;position:relative;width:100%"><div style="bottom:0;position:absolute;width:100%"><div style="text-align:center"><font><br></font></div></div></div></body></html>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

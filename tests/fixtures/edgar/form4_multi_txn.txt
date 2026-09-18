@@ -1,0 +1,214 @@
+<SEC-DOCUMENT>0001437749-26-030602.txt : 20260916
+<SEC-HEADER>0001437749-26-030602.hdr.sgml : 20260916
+<ACCEPTANCE-DATETIME>20260916215130
+ACCESSION NUMBER:		0001437749-26-030602
+CONFORMED SUBMISSION TYPE:	4
+PUBLIC DOCUMENT COUNT:		1
+CONFORMED PERIOD OF REPORT:	20260914
+FILED AS OF DATE:		20260916
+DATE AS OF CHANGE:		20260916
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			Keating Brendan Joseph
+		CENTRAL INDEX KEY:			0001689627
+		ORGANIZATION NAME:           	
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	001-38113
+		FILM NUMBER:		261385113
+
+	MAIL ADDRESS:	
+		STREET 1:		8918 SPANISH RIDGE AVENUE, SUITE 100
+		CITY:			LAS VEGAS
+		STATE:			NV
+		ZIP:			89148
+
+ISSUER:		
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			BOSTON OMAHA Corp
+		CENTRAL INDEX KEY:			0001494582
+		STANDARD INDUSTRIAL CLASSIFICATION:	REAL ESTATE OPERATORS (NO DEVELOPERS) & LESSORS [6510]
+		ORGANIZATION NAME:           	05 Real Estate & Construction
+		EIN:				270788438
+		STATE OF INCORPORATION:			DE
+		FISCAL YEAR END:			1231
+
+	BUSINESS ADDRESS:	
+		STREET 1:		1601 DODGE STREET
+		STREET 2:		SUITE 3300
+		CITY:			OMAHA
+		STATE:			NE
+		ZIP:			68102
+		BUSINESS PHONE:		857-256-0079
+
+	MAIL ADDRESS:	
+		STREET 1:		1601 DODGE STREET
+		STREET 2:		SUITE 3300
+		CITY:			OMAHA
+		STATE:			NE
+		ZIP:			68102
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	REO PLUS, INC.
+		DATE OF NAME CHANGE:	20100618
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4
+<SEQUENCE>1
+<FILENAME>rdgdoc.xml
+<DESCRIPTION>FORM 4
+<TEXT>
+<XML>
+<?xml version="1.0"?>
+<ownershipDocument>
+
+    <schemaVersion>X0609</schemaVersion>
+
+    <documentType>4</documentType>
+
+    <periodOfReport>2026-09-14</periodOfReport>
+
+    <issuer>
+        <issuerCik>0001494582</issuerCik>
+        <issuerName>BOSTON OMAHA Corp</issuerName>
+        <issuerTradingSymbol>BOC</issuerTradingSymbol>
+        <issuerForeignTradingSymbol></issuerForeignTradingSymbol>
+    </issuer>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001689627</rptOwnerCik>
+            <rptOwnerName>Keating Brendan Joseph</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerNonUSAddressFlag>false</rptOwnerNonUSAddressFlag>
+            <rptOwnerStreet1>C/O BOSTON OMAHA CORPORATION</rptOwnerStreet1>
+            <rptOwnerStreet2>1601 DODGE STREET, SUITE 3300</rptOwnerStreet2>
+            <rptOwnerCity>OMAHA</rptOwnerCity>
+            <rptOwnerState>NE</rptOwnerState>
+            <rptOwnerZipCode>68102</rptOwnerZipCode>
+            <rptOwnerStateDescription></rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>1</isDirector>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <aff10b5One>0</aff10b5One>
+
+    <nonDerivativeTable>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Class A common stock, par value $0.001 per share</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2026-09-14</value>
+            </transactionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>A</transactionCode>
+                <equitySwapInvolved>0</equitySwapInvolved>
+            </transactionCoding>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>5252</value>
+                    <footnoteId id="F1"/>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>13.71</value>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>A</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>5252</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>D</value>
+                </directOrIndirectOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Class A common stock, par value $0.001 per share</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2026-09-15</value>
+            </transactionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>S</transactionCode>
+                <equitySwapInvolved>0</equitySwapInvolved>
+            </transactionCoding>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>100994</value>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>13.563</value>
+                    <footnoteId id="F2"/>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>D</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>0</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>I</value>
+                    <footnoteId id="F2"/>
+                </directOrIndirectOwnership>
+                <natureOfOwnership>
+                    <value>See footnote 2</value>
+                </natureOfOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+        <nonDerivativeHolding>
+            <securityTitle>
+                <value>Class A common stock, par value $0.001 per share</value>
+            </securityTitle>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>50900</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>I</value>
+                    <footnoteId id="F3"/>
+                </directOrIndirectOwnership>
+                <natureOfOwnership>
+                    <value>See footnote 3</value>
+                </natureOfOwnership>
+            </ownershipNature>
+        </nonDerivativeHolding>
+    </nonDerivativeTable>
+
+    <footnotes>
+        <footnote id="F1">The Reporting Person was granted 5,252 shares of Class A common stock pursuant to the Boston Omaha Corporation 2022 Long-Term Incentive Plan for services as a member of the Board of Directors.</footnote>
+        <footnote id="F2">The reported shares are directly owned by Rosecrest Trust, of which Brendan J. Keating is the Trustee. Mr. Keating sold these shares in order to provide equity to invest in commercial real estate, his primary business. The shares sold on September 15, 2026 were sold in multiple transactions at an average price of $13.5633 per share and at individual transaction prices ranging from $13.385 to $13.715 per share. The reporting person undertakes to provide to the Issuer, any security holder of the Issuer, or the staff of the Securities and Exchange Commission, upon request, full information regarding the number of shares sold at each separate price within the ranges set forth in this footnote (2) to this Form 4.</footnote>
+        <footnote id="F3">The shares are held in qualified retirement accounts account for the benefit of Mr. Keating. Mr. Keating could be deemed to have indirect beneficial ownership of the shares.</footnote>
+    </footnotes>
+
+    <ownerSignature>
+        <signatureName>/s/ Brendan J. Keating</signatureName>
+        <signatureDate>2026-09-16</signatureDate>
+    </ownerSignature>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>
