@@ -1,0 +1,57 @@
+# The companies whose events reach the feed. Edit this file and restart.
+#
+# Chosen to be event-rich rather than merely large. A watchlist of mega-caps
+# produces a feed so quiet you cannot tell whether the system is working or
+# broken -- you want names that actually halt, restate, get shorted, and file
+# clustered insider buys, because those are the events the scoring exists to
+# rank. Swap in your own holdings; the design does not change at 500.
+#
+# Every filer in company_tickers.json is loaded into `company` regardless, since
+# resolution needs the full map. Only these get watched = true.
+
+tickers:
+  # From the original design mockup
+  - SMCI   # restatement and auditor history -- the 8-K 4.02 case
+  - RKLB   # frequent halts and launch-driven news
+  - HOOD   # heavy insider activity
+  - WOLF   # borrow/short-interest candidate
+  - AAPL   # the resolution test case: CIK, ticker, subsidiaries, certs
+
+  # Large caps -- baseline volume, frequent 8-Ks
+  - MSFT
+  - NVDA
+  - AMZN
+  - GOOGL
+  - META
+  - TSLA
+  - AMD
+  - INTC
+  - MU
+  - AVGO
+
+  # Mid caps with real event flow
+  - PLTR
+  - SOFI
+  - COIN
+  - MARA
+  - RIOT
+  - CVNA
+  - AFRM
+  - UPST
+  - DKNG
+  - ROKU
+  - SNAP
+  - PINS
+  - LYFT
+  - RIVN
+  - LCID
+  - CHPT
+  - PLUG
+  - FCEL
+  - LUNR   # Intuitive Machines -- replaced NKLA, which no longer files with SEC
+  - SPCE
+  - BBAI
+  - IONQ
+  - ACHR
+  - JOBY
+  - ASTS
