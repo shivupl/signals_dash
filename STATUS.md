@@ -186,6 +186,30 @@ and HTTP stays the single source of truth.
   none of the 40 was halted overnight. 43 tests, including quotes-before-trading.
 - **A watchdog alarm** -- 11 tests on a fake clock.
 
+## Reliability and latency, measured 2026-09-18 evening
+
+**Failures fell from ~68/hour to ~9/hour** after hedged index requests, recognising
+the halt feed's CDN challenge page, and free first-failure retries. Zero timeouts
+in two hours; the remainder is SEC recycling connections, which recovers on the
+next poll. The halt feed had 0 failures in 118 polls at a 30 s interval.
+
+**Latency is bimodal.** The fast path is 21-33 s from acceptance to stored (four
+NVDA Form 4s). An independent probe put the floor at about 30 s: that is how long
+SEC takes to publish to `getcurrent`. But SEC's index requests are slow 30% of
+the time (p50 1.3 s, p90 12 s, max 39 s), so the configured 2 s poll is really
+6-8 s, and a realistic p50 is 45-60 s.
+
+**A slow tail of 150-460 s is unexplained.** Five of nine live captures. Both
+episodes ended at the moment SEC dropped the connection. Tested and ruled out:
+a long-lived connection pinned to a stale cache node (40 paired polls, reused vs
+fresh connection, identical every time; responses are `no-cache` from Apache),
+and the index lagging during the probe (SEC's own records show no filings in the
+window that looked frozen). Not reproduced under observation. Every event now
+records `discovered_by` and `poll_gap_s` -- seconds since that adapter last
+completed a poll -- so the next late capture says which side was slow.
+
+The reconciliation sweep bounds the damage regardless: nothing is lost, only late.
+
 ## Open decisions
 
 1. **The p50 < 15 s target.** Measured p50 is 30-45 s and the poll interval

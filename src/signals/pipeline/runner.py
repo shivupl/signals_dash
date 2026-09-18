@@ -64,6 +64,7 @@ class AdapterRunner:
         )
         self._clock = clock
         self._calendar = calendar
+        self._last_poll_done: float | None = None
 
     async def run(self, max_iterations: int | None = None) -> AdapterHealth:
         """Loop until cancelled. ``max_iterations`` exists so tests terminate."""
@@ -109,8 +110,20 @@ class AdapterRunner:
         return self.health
 
     async def _iterate(self) -> None:
-        for raw in await self.adapter.fetch(self._ctx):
+        # How long since this adapter last completed a poll. Stamped on every
+        # event it yields, because it is the one fact that tells a late capture's
+        # two possible causes apart: a gap of a few seconds means the source
+        # published late; a gap of minutes means our own polling had stalled.
+        now = self._clock.monotonic()
+        gap = None if self._last_poll_done is None else round(now - self._last_poll_done, 1)
+
+        raws = await self.adapter.fetch(self._ctx)
+        self._last_poll_done = self._clock.monotonic()
+
+        for raw in raws:
             for event in self.adapter.normalize(raw):
+                event.payload["discovered_by"] = self.adapter.name
+                event.payload["poll_gap_s"] = gap
                 self.health.stats += await self._processor.process(event)
 
     def _should_run_now(self) -> bool:

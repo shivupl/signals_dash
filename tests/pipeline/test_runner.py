@@ -18,10 +18,10 @@ from tests.fakes import FakeAdapter, FakeClock
 CAL = MarketCalendar.load()
 
 # A Tuesday, mid-session.
-OPEN = datetime(2026, 9, 15, 14, 0, tzinfo=UTC)          # 10:00 ET
-AFTER_HOURS = datetime(2026, 9, 15, 23, 0, tzinfo=UTC)   # 19:00 ET
-OVERNIGHT = datetime(2026, 9, 16, 6, 0, tzinfo=UTC)      # 02:00 ET
-WEEKEND = datetime(2026, 9, 19, 16, 0, tzinfo=UTC)       # Saturday
+OPEN = datetime(2026, 9, 15, 14, 0, tzinfo=UTC)  # 10:00 ET
+AFTER_HOURS = datetime(2026, 9, 15, 23, 0, tzinfo=UTC)  # 19:00 ET
+OVERNIGHT = datetime(2026, 9, 16, 6, 0, tzinfo=UTC)  # 02:00 ET
+WEEKEND = datetime(2026, 9, 19, 16, 0, tzinfo=UTC)  # Saturday
 
 
 class _NullProcessor:
@@ -251,3 +251,69 @@ class TestScheduling:
         await runner.run(max_iterations=1)
 
         assert (adapter.calls == 1) is should_run
+
+
+class TestDiscoveryForensics:
+    """A late capture has two possible causes, and one number tells them apart:
+    a poll gap of seconds means the source published late; a gap of minutes means
+    our own polling had stalled."""
+
+    @staticmethod
+    def _event():
+        from datetime import UTC, datetime
+
+        from signals.models import CompanyKey, NormalizedEvent
+
+        return NormalizedEvent(
+            source="fake",
+            external_id="x",
+            event_type="t",
+            occurred_at=datetime(2026, 9, 15, 14, 0, tzinfo=UTC),
+            company_key=CompanyKey(ticker="X"),
+            summary="s",
+        )
+
+    async def test_events_record_who_found_them_and_the_gap_before(self) -> None:
+        from tests.fakes import raw_with
+
+        seen = []
+
+        class Capture:
+            async def process(self, event):
+                from signals.pipeline.process import ProcessStats
+
+                seen.append(dict(event.payload))
+                return ProcessStats(seen=1)
+
+        clock = FakeClock(OPEN)
+        adapter = FakeAdapter("edgar_8k", script=[[], [raw_with([self._event()])]], interval=2.0)
+        runner = AdapterRunner(adapter, Capture(), None, clock, CAL)  # type: ignore[arg-type]
+        await runner.run(max_iterations=2)
+
+        assert seen[0]["discovered_by"] == "edgar_8k"
+        assert seen[0]["poll_gap_s"] == 2.0
+
+    async def test_a_stalled_poller_shows_up_as_a_large_gap(self) -> None:
+        from tests.fakes import raw_with
+
+        seen = []
+
+        class Capture:
+            async def process(self, event):
+                from signals.pipeline.process import ProcessStats
+
+                seen.append(dict(event.payload))
+                return ProcessStats(seen=1)
+
+        clock = FakeClock(OPEN)
+        script = [
+            [],
+            TransientSourceError("x"),
+            TransientSourceError("x"),
+            [raw_with([self._event()])],
+        ]
+        adapter = FakeAdapter("edgar_8k", script=script, interval=2.0)
+        runner = AdapterRunner(adapter, Capture(), None, clock, CAL)  # type: ignore[arg-type]
+        await runner.run(max_iterations=4)
+
+        assert seen[0]["poll_gap_s"] >= 10.0, "the failed polls must widen the recorded gap"
