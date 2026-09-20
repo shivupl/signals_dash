@@ -199,18 +199,31 @@ SEC takes to publish to `getcurrent`. But SEC's index requests are slow 30% of
 the time (p50 1.3 s, p90 12 s, max 39 s), so the configured 2 s poll is really
 6-8 s, and a realistic p50 is 45-60 s.
 
-**A slow tail of 150-460 s is unexplained.** Five of nine live captures. Both
-episodes ended at the moment SEC dropped the connection. Tested and ruled out:
-a long-lived connection pinned to a stale cache node (40 paired polls, reused vs
-fresh connection, identical every time; responses are `no-cache` from Apache),
-and the index lagging during the probe (SEC's own records show no filings in the
-window that looked frozen). Not reproduced under observation. Every event now
-records `discovered_by` and `poll_gap_s` -- seconds since that adapter last
-completed a poll -- so the next late capture says which side was slow.
+**The slow tail was the host machine sleeping.** Five of nine live captures took
+150-1,400 s. Two hypotheses were tested and ruled out first (a connection pinned
+to a stale cache node; the index itself lagging). The `poll_gap_s` forensics then
+showed polling looked healthy during a 23-minute delay -- which pointed away from
+SEC and at the host. `pmset -g log` settled it: the laptop sleeps after one idle
+minute and went through 269 sleep cycles in a day and a half, dozens during market
+hours. Every slow capture lines up with a sleep window to the second (woke
+16:23:13, stored 16:23:18); every fast capture happened while it was awake. During
+a five-second dark wake the worker finds its connections dead, reconnects, reads
+the index, and is suspended again -- which is also why those episodes always ended
+with "Server disconnected", and why `poll_gap_s` read small: a suspended
+container's monotonic clock does not advance.
+
+So: awake, latency is 21-33 s. Asleep, the system is blind. This is a laptop
+problem, not a pipeline problem, and the fix is where it runs (see Open decisions).
+The watchdog did fire correctly on the longer outages -- its first live alarms.
 
 The reconciliation sweep bounds the damage regardless: nothing is lost, only late.
 
 ## Open decisions
+
+0. **Where this runs.** On a laptop that sleeps, "five trading days unattended" is
+   not achievable. Either keep the machine awake during the ingest window
+   (`make awake`; does not survive a closed lid) or move to the small VPS the
+   design always assumed.
 
 1. **The p50 < 15 s target.** Measured p50 is 30-45 s and the poll interval
    accounts for at most 2 s of it; the rest is SEC's own publication lag. The

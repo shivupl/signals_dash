@@ -1,4 +1,4 @@
-.PHONY: help up down logs test test-unit test-pg lint fmt typecheck layers migrate seed replay fixtures web psql redis shell
+.PHONY: awake help up down logs test test-unit test-pg lint fmt typecheck layers migrate seed replay fixtures web psql redis shell
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-12s %s\n",$$1,$$2}'
@@ -43,3 +43,7 @@ redis:      ## Open a redis-cli shell
 	docker compose exec redis redis-cli
 shell:      ## Bash inside the app image
 	docker compose run --rm worker bash
+
+awake:      ## Keep this Mac awake while the stack runs (stopgap; a closed lid still sleeps)
+	@echo "Holding the machine awake. Ctrl-C to release."
+	caffeinate -ims
