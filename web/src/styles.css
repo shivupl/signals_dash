@@ -269,7 +269,7 @@ a.headline:hover { text-decoration: underline; text-decoration-color: var(--ink-
 .pill.chips { display: flex; align-items: center; gap: 5px; padding: 3px 10px; cursor: text; min-width: 116px; }
 .pill.chips input {
   background: none; border: 0; outline: 0; color: var(--ink); font-size: 13px;
-  width: 64px; padding: 3px 0; text-transform: uppercase;
+  flex: 1; min-width: 56px; width: 64px; padding: 3px 0; text-transform: uppercase;
 }
 .pill.chips input::placeholder { color: var(--ink-soft); text-transform: none; }
 .chip { display: inline-flex; align-items: center; gap: 3px; background: #2a2d30; border-radius: 4px; padding: 1px 3px 1px 6px; font-size: 12px; color: var(--ink); }

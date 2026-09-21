@@ -72,6 +72,7 @@ export default function App() {
   );
 
   const today = marketDay(new Date());
+  const narrowed = filters.tickers.length > 0 || filters.range !== "";
   // Green only when flags are being pushed. Amber still works, but by polling.
   const dotClass = error ? "err" : live ? "" : "stale";
   const routine = total - flags - (filters.system ? events.filter((e) => e.source === "system").length : 0);
@@ -91,6 +92,9 @@ export default function App() {
               <>
                 <b>
                   {flags} flag{flags === 1 ? "" : "s"}
+                  {/* The rail always covers the whole watchlist this week. When the
+                      feed is narrowed by ticker or date, say the count is the view's. */}
+                  {narrowed ? " in view" : ""}
                 </b>
                 {routine > 0 && <> · {routine} routine</>} ·{" "}
               </>

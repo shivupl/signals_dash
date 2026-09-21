@@ -84,23 +84,37 @@ function TickerPicker({
   const [text, setText] = useState("");
   const [open, setOpen] = useState(false);
   const ref = useDismiss(open, () => setOpen(false));
+  const input = useRef<HTMLInputElement>(null);
 
   const matches = useMemo(() => {
     const q = text.trim().toUpperCase();
-    return companies
-      .filter((c) => !selected.includes(c.ticker))
-      .filter((c) => !q || c.ticker.startsWith(q) || c.name.toUpperCase().includes(q))
+    const pool = companies.filter((c) => !selected.includes(c.ticker));
+    if (!q) return pool.slice(0, 8);
+    // Someone typing "M" wants MARA, META, MSFT -- not AMD because its name has an
+    // M in it. Ticker prefixes first, then tickers containing it, then names.
+    const rank = (c: { ticker: string; name: string }) =>
+      c.ticker.startsWith(q) ? 0 : c.ticker.includes(q) ? 1 : c.name.toUpperCase().includes(q) ? 2 : 3;
+    return pool
+      .filter((c) => rank(c) < 3)
+      .sort((a, b) => rank(a) - rank(b) || a.ticker.localeCompare(b.ticker))
       .slice(0, 8);
   }, [companies, selected, text]);
 
   const add = (ticker: string) => {
     onChange([...selected, ticker]);
     setText("");
+    // Close until they type again: left open it sits on top of the very rows the
+    // pick was meant to reveal.
+    setOpen(false);
   };
 
   return (
     <div className="ms tickers" ref={ref}>
-      <div className={`pill chips${selected.length ? " on" : ""}`}>
+      {/* The whole pill is the click target, not just the narrow input inside it. */}
+      <div
+        className={`pill chips${selected.length ? " on" : ""}`}
+        onClick={() => input.current?.focus()}
+      >
         {selected.map((t) => (
           <span className="chip mono" key={t}>
             {t}
@@ -113,6 +127,7 @@ function TickerPicker({
           </span>
         ))}
         <input
+          ref={input}
           className="mono"
           placeholder={selected.length ? "" : "ticker"}
           value={text}
