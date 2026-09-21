@@ -214,6 +214,35 @@ The watchdog did fire correctly on the longer outages -- its first live alarms.
 
 The reconciliation sweep bounds the damage regardless: nothing is lost, only late.
 
+## Phase 1.5: the dashboard (2026-09-21)
+
+No new sources; backend changes only where a view needed them.
+
+- **System events left the feed.** They were 9 of 11 rows. They now live in a
+  status strip; `/api/feed` excludes them unless asked. The watchdog keeps **one
+  row per outage**, updated in place while its duration counts up, plus a single
+  recovered event. A wall-clock jump the process clock did not see is recorded
+  once as *the host was suspended* rather than blamed on every source -- which is
+  what those nine alarms actually were.
+- **Header and rail agree by construction.** `X-Flag-Count` comes from the same
+  predicate as the rows, and the rail takes the same threshold, source and
+  event-type filters. A row scoring 0 is "routine", never a flag.
+- **Filter bar, all state in the URL.** Multi-select tickers, sources and event
+  types; a score slider; today / 7d / 30d / custom, where "today" is the market's.
+- **A normalized `category`** on every event, mapped in one module. `distress`
+  (restatement, bankruptcy, delisting, auditor change) was added to the requested
+  list: those are the highest-scoring events and did not belong under "other".
+- **Company page** with a price timeline, scoped events, an insider table grouped
+  by CIK, and unresolved filings whose filer name starts like the company's.
+- **The flag threshold is a runtime setting**, re-read by the worker every 30 s.
+  Guarded by `ADMIN_TOKEN`; read-only without one. Separate from the display
+  slider, which is per-viewer and unsaved.
+
+Two deliberate departures from the brief. The display threshold is sent to the
+server rather than applied client-side: the feed has a row limit, and filtering
+after a limit silently drops matches. And there was no existing password to put
+the settings panel behind, so `ADMIN_TOKEN` was added.
+
 ## Open decisions
 
 0. **Where this runs.** On a laptop that sleeps, "five trading days unattended" is
