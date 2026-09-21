@@ -68,6 +68,9 @@ class Promoter:
         self._publisher = publisher
         self._threshold = flag_threshold
 
+    def set_flag_threshold(self, value: int) -> None:
+        self._threshold = value
+
     async def promote(self, company_id: int, now: datetime) -> PromotionResult:
         """Rescore earlier buys once a company's cluster is complete."""
         result = PromotionResult()

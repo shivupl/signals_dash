@@ -22,6 +22,19 @@ def cmd_migrate() -> int:
 
     applied = asyncio.run(migrate(_dsn()))
     print(f"applied: {', '.join(applied)}" if applied else "nothing to apply; schema is current")
+
+    async def backfill() -> int:
+        from .store.pg import PgStore
+
+        store = await PgStore.connect(_dsn())
+        try:
+            return await store.backfill_categories()
+        finally:
+            await store.close()
+
+    filled = asyncio.run(backfill())
+    if filled:
+        print(f"categorized {filled} existing events")
     return 0
 
 

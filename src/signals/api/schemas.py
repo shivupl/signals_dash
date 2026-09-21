@@ -16,6 +16,8 @@ class EventOut(BaseModel):
     company: str | None
     source: str
     event_type: str
+    #: Normalized across sources; see signals/categories.py.
+    category: str | None = None
     occurred_at: datetime
     ingested_at: datetime
     summary: str | None
@@ -41,6 +43,7 @@ class EventOut(BaseModel):
             company=row.company_name or row.payload.get("filer_name"),
             source=row.source,
             event_type=row.event_type,
+            category=row.category,
             occurred_at=row.occurred_at,
             ingested_at=row.ingested_at,
             summary=row.summary,
@@ -101,9 +104,44 @@ class SourceLatencyOut(BaseModel):
 
     @classmethod
     def of(cls, row: SourceLatency) -> SourceLatencyOut:
+        return cls(source=row.source, events=row.events, p50_seconds=row.p50, p95_seconds=row.p95)
+
+
+class SystemEventOut(BaseModel):
+    """One line of the status strip."""
+
+    id: int
+    adapter: str | None
+    state: str  # "open" | "resolved" | "info"
+    event_type: str
+    headline: str
+    detail: str | None
+    occurred_at: datetime
+    minutes: float | None
+
+    @classmethod
+    def of(cls, row: EventRow) -> SystemEventOut:
+        p = row.payload
         return cls(
-            source=row.source, events=row.events, p50_seconds=row.p50, p95_seconds=row.p95
+            id=row.id,
+            adapter=p.get("adapter"),
+            state=p.get("state") or "info",
+            event_type=row.event_type,
+            headline=p.get("headline") or row.summary or row.event_type,
+            detail=p.get("detail"),
+            occurred_at=row.occurred_at,
+            minutes=p.get("minutes"),
         )
+
+
+class SettingsOut(BaseModel):
+    flag_threshold: int
+    #: False when no ADMIN_TOKEN is configured: the panel is then read-only.
+    editable: bool
+
+
+class SettingsIn(BaseModel):
+    flag_threshold: int
 
 
 class StatsOut(BaseModel):

@@ -24,6 +24,7 @@ class EventRow:
     price_at: Decimal | None
     payload: dict[str, Any]
     url: str | None
+    category: str | None = None
     ticker: str | None = None
     company_name: str | None = None
     price_now: Decimal | None = None
@@ -72,9 +73,14 @@ class SourceLatency:
 class FeedFilter:
     min_score: int = 0
     since: datetime | None = None
-    ticker: str | None = None
-    source: str | None = None
+    until: datetime | None = None
+    tickers: tuple[str, ...] = ()
+    sources: tuple[str, ...] = ()
+    categories: tuple[str, ...] = ()
+    #: System events are the pipeline talking about itself. Off by default.
+    include_system: bool = False
     limit: int = 200
+    offset: int = 0
 
 
 class Store(Protocol):
@@ -99,8 +105,15 @@ class Store(Protocol):
         self, company_id: int, since: datetime
     ) -> list[EventRow]: ...
     async def update_score(self, event_id: int, score: Score) -> None: ...
+    async def update_payload(
+        self, source: str, external_id: str, patch: dict[str, Any]
+    ) -> int | None: ...
 
     async def feed(self, filters: FeedFilter) -> list[EventRow]: ...
+    async def feed_count(self, filters: FeedFilter) -> int: ...
+    async def system_status(self) -> list[EventRow]: ...
+    async def get_setting(self, key: str) -> str | None: ...
+    async def put_setting(self, key: str, value: str) -> None: ...
     async def get_event(self, event_id: int) -> EventRow | None: ...
     async def watchlist(self, min_score: int) -> list[WatchlistRow]: ...
     async def latency_percentiles(self, window: timedelta) -> list[SourceLatency]: ...

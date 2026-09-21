@@ -17,9 +17,9 @@ from typing import Final
 INSERT_EVENT: Final[str] = """
 insert into event (
   company_id, source, event_type, occurred_at, external_id,
-  summary, score, payload, url
+  summary, score, payload, url, category
 )
-values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9)
+values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10)
 on conflict (source, external_id) do nothing
 returning id
 """
@@ -76,6 +76,15 @@ select id, cik, ticker, name, watched from company
 where watched and ticker is not null order by ticker
 """
 
+# In-place update for a row whose facts legitimately change over time -- an open
+# outage whose duration counts up. Distinct from MERGE_PAYLOAD, which is guarded
+# to apply exactly once.
+UPDATE_PAYLOAD: Final[str] = """
+update event set payload = payload || $3::jsonb, summary = coalesce($4, summary)
+where source = $1 and external_id = $2
+returning id
+"""
+
 UPDATE_SCORE: Final[str] = """
 update event set score = $2, payload = jsonb_set(payload, '{score_parts}', $3::jsonb)
 where id = $1
@@ -124,24 +133,65 @@ where company_id = $1
 
 _EVENT_COLUMNS: Final[str] = """
   e.id, e.company_id, e.source, e.event_type, e.occurred_at, e.ingested_at,
-  e.external_id, e.summary, e.score, e.price_at, e.payload, e.url,
+  e.external_id, e.summary, e.score, e.price_at, e.payload, e.url, e.category,
   c.ticker, c.name as company_name,
   (select p.close from price_daily p
     where p.company_id = e.company_id order by p.d desc limit 1) as price_now
 """
 
-# Filters are all optional and collapse to "true" when unset, so one statement
-# serves every combination without string building.
+# Every filter is optional and collapses to "true" when unset, so one statement
+# serves every combination without string building. Multi-value filters are
+# arrays; NULL means "no filter". System events are excluded unless asked for --
+# they are the pipeline talking about itself, not a company event, and belong in
+# the status strip rather than among the flags.
+_FEED_WHERE: Final[str] = """
+where e.score >= $1
+  and ($2::timestamptz is null or e.occurred_at >= $2)
+  and ($3::timestamptz is null or e.occurred_at <  $3)
+  and ($4::text[] is null or upper(c.ticker) = any($4))
+  and ($5::text[] is null or e.source = any($5))
+  and ($6::text[] is null or e.category = any($6))
+  and ($7::boolean or e.source <> 'system')
+"""
+
 FEED: Final[str] = f"""
 select {_EVENT_COLUMNS}
 from event e
 left join company c on c.id = e.company_id
-where e.score >= $1
-  and ($2::timestamptz is null or e.occurred_at > $2)
-  and ($3::text is null or upper(c.ticker) = upper($3))
-  and ($4::text is null or e.source = $4)
+{_FEED_WHERE}
 order by e.occurred_at desc, e.id desc
-limit $5
+limit $8 offset $9
+"""
+
+# What the header reports. Same predicate as the feed, so the two cannot disagree.
+FEED_COUNT: Final[str] = f"""
+select count(*) from event e
+left join company c on c.id = e.company_id
+{_FEED_WHERE}
+"""
+
+# Open outages first, then the last day's resolved ones and notices.
+SYSTEM_STATUS: Final[str] = f"""
+select {_EVENT_COLUMNS}
+from event e
+left join company c on c.id = e.company_id
+where e.source = 'system'
+  and (e.payload->>'state' = 'open' or e.occurred_at > now() - interval '24 hours')
+order by (e.payload->>'state' = 'open') desc, e.occurred_at desc
+limit 30
+"""
+
+UNCATEGORIZED: Final[str] = """
+select id, source, event_type, payload from event where category is null limit 5000
+"""
+
+SET_CATEGORY: Final[str] = "update event set category = $2 where id = $1"
+
+GET_SETTING: Final[str] = "select value from setting where key = $1"
+
+PUT_SETTING: Final[str] = """
+insert into setting (key, value) values ($1, $2)
+on conflict (key) do update set value = excluded.value, updated_at = now()
 """
 
 GET_EVENT: Final[str] = f"""

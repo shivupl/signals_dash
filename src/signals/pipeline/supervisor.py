@@ -36,6 +36,24 @@ async def connect_with_retry(dsn: str, attempts: int = 30) -> PgStore:
     raise RuntimeError(f"could not reach Postgres after {attempts} attempts: {last}")
 
 
+SETTINGS_REFRESH_SECONDS = 30.0
+
+
+async def follow_settings(
+    store: PgStore, processor: Processor, clock: Clock, default: int, max_iterations: int | None
+) -> None:
+    """Re-read the flag threshold, so the dashboard can change it without a restart."""
+    iterations = 0
+    while max_iterations is None or iterations < max_iterations:
+        iterations += 1
+        try:
+            stored = await store.get_setting("flag_threshold")
+            processor.set_flag_threshold(int(stored) if stored is not None else default)
+        except Exception:  # noqa: BLE001 -- a settings read must never stop ingest
+            log.exception("could not refresh settings")
+        await clock.sleep(SETTINGS_REFRESH_SECONDS)
+
+
 async def run_worker(
     settings: Settings,
     *,
@@ -93,7 +111,8 @@ async def run_worker(
         await asyncio.gather(
             *(r.run(max_iterations) for r in runners),
             run_price_loop(store, prices, clock, calendar, max_iterations),
-            Watchdog(runners, processor, clock, calendar).run(max_iterations),
+            Watchdog(runners, processor, clock, calendar, store).run(max_iterations),
+            follow_settings(store, processor, clock, settings.flag_threshold, max_iterations),
         )
     finally:
         await http.aclose()

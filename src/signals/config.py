@@ -17,6 +17,8 @@ class Settings:
     redis_url: str
     flag_threshold: int
     anthropic_api_key: str | None
+    #: Guards the settings endpoint. Unset means settings are read-only.
+    admin_token: str | None = None
 
     @classmethod
     def from_env(
@@ -51,4 +53,5 @@ class Settings:
             redis_url=e.get("REDIS_URL", "redis://redis:6379/0"),
             flag_threshold=int(e.get("FLAG_THRESHOLD", "30")),
             anthropic_api_key=(e.get("ANTHROPIC_API_KEY") or "").strip() or None,
+            admin_token=(e.get("ADMIN_TOKEN") or "").strip() or None,
         )

@@ -11,6 +11,7 @@ from typing import Any
 
 import asyncpg
 
+from ..categories import categorize
 from ..models import Company, CompanyKey, ResolvedEvent, Score
 from . import queries as q
 from .base import EventRow, FeedFilter, SourceLatency, WatchlistRow
@@ -91,6 +92,7 @@ class PgStore:
             event.score.total,
             json.dumps(payload, default=str),
             n.url,
+            categorize(n.source, n.event_type, payload),
         )
         return int(new_id) if new_id is not None else None
 
@@ -107,6 +109,18 @@ class PgStore:
         """
         row = await self._pool.fetchval(
             q.MERGE_PAYLOAD, source, external_id, json.dumps(patch, default=str), guard_key
+        )
+        return int(row) if row is not None else None
+
+    async def update_payload(
+        self, source: str, external_id: str, patch: dict[str, Any]
+    ) -> int | None:
+        row = await self._pool.fetchval(
+            q.UPDATE_PAYLOAD,
+            source,
+            external_id,
+            json.dumps(patch, default=str),
+            patch.get("headline"),
         )
         return int(row) if row is not None else None
 
@@ -127,16 +141,49 @@ class PgStore:
 
     # --- read path ---------------------------------------------------------
 
+    @staticmethod
+    def _feed_args(f: FeedFilter) -> tuple[Any, ...]:
+        return (
+            f.min_score,
+            f.since,
+            f.until,
+            [t.upper() for t in f.tickers] or None,
+            list(f.sources) or None,
+            list(f.categories) or None,
+            # Asking for the system source by name is asking to see it.
+            f.include_system or "system" in f.sources,
+        )
+
     async def feed(self, filters: FeedFilter) -> list[EventRow]:
         rows = await self._pool.fetch(
-            q.FEED,
-            filters.min_score,
-            filters.since,
-            filters.ticker,
-            filters.source,
-            filters.limit,
+            q.FEED, *self._feed_args(filters), filters.limit, filters.offset
         )
         return [_row_to_event(r) for r in rows]
+
+    async def feed_count(self, filters: FeedFilter) -> int:
+        return int(await self._pool.fetchval(q.FEED_COUNT, *self._feed_args(filters)) or 0)
+
+    async def system_status(self) -> list[EventRow]:
+        return [_row_to_event(r) for r in await self._pool.fetch(q.SYSTEM_STATUS)]
+
+    async def get_setting(self, key: str) -> str | None:
+        value = await self._pool.fetchval(q.GET_SETTING, key)
+        return str(value) if value is not None else None
+
+    async def put_setting(self, key: str, value: str) -> None:
+        await self._pool.execute(q.PUT_SETTING, key, value)
+
+    async def backfill_categories(self) -> int:
+        """Categorize rows stored before the column existed. Idempotent."""
+        rows = await self._pool.fetch(q.UNCATEGORIZED)
+        for r in rows:
+            payload = r["payload"]
+            if isinstance(payload, str):
+                payload = json.loads(payload)
+            await self._pool.execute(
+                q.SET_CATEGORY, r["id"], categorize(r["source"], r["event_type"], payload or {})
+            )
+        return len(rows)
 
     async def get_event(self, event_id: int) -> EventRow | None:
         row = await self._pool.fetchrow(q.GET_EVENT, event_id)
@@ -215,6 +262,7 @@ def _row_to_event(row: asyncpg.Record) -> EventRow:
         price_at=row["price_at"],
         payload=payload or {},
         url=row["url"],
+        category=row["category"] if "category" in columns else None,
         ticker=row["ticker"] if "ticker" in columns else None,
         company_name=row["company_name"] if "company_name" in columns else None,
         price_now=row["price_now"] if "price_now" in columns else None,

@@ -71,6 +71,21 @@ class Processor:
         #: the age of the backlog, not our speed -- and must not reach /stats.
         self._started_at = started_at
 
+    @property
+    def flag_threshold(self) -> int:
+        return self._threshold
+
+    def set_flag_threshold(self, value: int) -> None:
+        """Change what is pushed and price-stamped from now on.
+
+        Only forward-looking. Stored events keep their scores, so nothing is lost
+        by raising it and lowering it later surfaces what was always there.
+        """
+        if value != self._threshold:
+            log.info("flag threshold %d -> %d", self._threshold, value)
+        self._threshold = value
+        self._promoter.set_flag_threshold(value)
+
     async def process(self, event: NormalizedEvent) -> ProcessStats:
         stats = ProcessStats(seen=1)
         # A market-wide circuit breaker is about no company in particular. It is
