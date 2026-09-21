@@ -1,4 +1,9 @@
-# The companies whose events reach the feed. Edit this file and restart.
+# An example watchlist. Copy to config/watchlist.yml (gitignored) and edit:
+#
+#     cp config/watchlist.example.yml config/watchlist.yml
+#     make seed && docker compose restart worker
+#
+# Until you do, `make seed` falls back to this file.
 #
 # Chosen to be event-rich rather than merely large. A watchlist of mega-caps
 # produces a feed so quiet you cannot tell whether the system is working or

@@ -3,10 +3,6 @@
 Build log for Phase 1: what was built, what was measured live, and where the
 original design turned out to be wrong.
 
-Steps 7 and 11 were pulled forward ahead of 3–6 and 8–10, so there would be a
-feed on screen early. That is why the UI works while the ingest loop underneath
-it does not yet exist.
-
 Last updated: 2026-09-18 03:40 ET (Phase 1 complete, running)
 
 | # | Step | State | Notes |

@@ -21,10 +21,24 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 WATCHLIST = ROOT / "config" / "watchlist.yml"
+#: Committed. The real watchlist is gitignored -- what you hold is nobody's
+#: business -- and a fresh clone seeds from this until you write your own.
+WATCHLIST_EXAMPLE = ROOT / "config" / "watchlist.example.yml"
 TICKERS_FIXTURE = ROOT / "tests" / "fixtures" / "edgar" / "company_tickers.json"
 
 
-def load_watchlist(path: Path = WATCHLIST) -> list[str]:
+def watchlist_path() -> Path:
+    return WATCHLIST if WATCHLIST.exists() else WATCHLIST_EXAMPLE
+
+
+def load_watchlist(path: Path | None = None) -> list[str]:
+    path = path or watchlist_path()
+    if path == WATCHLIST_EXAMPLE:
+        print(
+            f"note: {WATCHLIST.name} not found; seeding from {WATCHLIST_EXAMPLE.name}. "
+            "Copy it and edit to watch your own companies.",
+            file=sys.stderr,
+        )
     data = yaml.safe_load(path.read_text())
     tickers = [str(t).strip().upper() for t in data.get("tickers", []) if str(t).strip()]
     duplicates = {t for t in tickers if tickers.count(t) > 1}

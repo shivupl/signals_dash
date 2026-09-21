@@ -123,3 +123,30 @@ class TestConfigLoading:
         assert len(filers) > 9000
         assert all(len(f["cik"]) == 10 for f in filers)
         assert all(f["ticker"] == f["ticker"].upper() for f in filers)
+
+
+class TestWatchlistFallback:
+    def test_falls_back_to_the_example_when_no_private_list_exists(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path
+    ) -> None:
+        """The real watchlist is gitignored, so a fresh clone has only the example."""
+        from signals import seeding
+
+        monkeypatch.setattr(seeding, "WATCHLIST", tmp_path / "missing.yml")
+        assert seeding.watchlist_path() == seeding.WATCHLIST_EXAMPLE
+        assert len(seeding.load_watchlist()) == 40
+
+    def test_a_private_list_wins_when_present(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path
+    ) -> None:
+        from signals import seeding
+
+        mine = tmp_path / "watchlist.yml"
+        mine.write_text("tickers:\n  - AAPL\n  - msft\n")
+        monkeypatch.setattr(seeding, "WATCHLIST", mine)
+        assert seeding.load_watchlist() == ["AAPL", "MSFT"]
+
+    def test_the_example_ships_with_the_code(self) -> None:
+        from signals import seeding
+
+        assert seeding.WATCHLIST_EXAMPLE.exists()
