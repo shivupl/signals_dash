@@ -109,7 +109,7 @@ async def clean_pg(request: pytest.FixtureRequest, pg_dsn: str | None = None):
     conn = await asyncpg.connect(dsn)
     try:
         await conn.execute(
-            "truncate event, unresolved, price_daily, company_alias, company "
+            "truncate event, unresolved, price_daily, company_alias, company, setting "
             "restart identity cascade"
         )
     finally:
