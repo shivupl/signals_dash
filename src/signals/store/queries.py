@@ -187,6 +187,43 @@ select id, source, event_type, payload from event where category is null limit 5
 
 SET_CATEGORY: Final[str] = "update event set category = $2 where id = $1"
 
+COMPANY_BY_TICKER: Final[str] = """
+select c.id, c.cik, c.ticker, c.name, c.watched, c.next_earnings
+from company_alias a join company c on c.id = a.company_id
+where a.kind = 'ticker' and a.value = upper($1)
+"""
+
+COMPANY_PRICES: Final[str] = """
+select d, close from price_daily
+where company_id = $1 and d >= current_date - $2::int
+order by d
+"""
+
+# Raw material for the insider table. Aggregated in Python: a filing can name
+# several owners, and the grouping key is the insider's CIK, never the name.
+COMPANY_FORM4: Final[str] = """
+select occurred_at, url, score, payload
+from event
+where company_id = $1 and source = 'edgar_form4' and occurred_at > now() - $2::interval
+order by occurred_at desc
+"""
+
+# Filings that failed to resolve but plausibly belong here: the raw name starts
+# with this company's own leading words. Deliberately conservative, and labelled
+# "possible" wherever it is shown.
+POSSIBLE_ALIASES: Final[str] = """
+select raw_name, count(*) as filings, max(seen_at) as last_seen
+from unresolved
+where not resolved and lower(raw_name) like lower($1) || '%'
+group by raw_name order by filings desc limit 10
+"""
+
+# Form 4 rows stored before sale values were recorded.
+FORM4_MISSING_SALES: Final[str] = """
+select external_id, url from event
+where source = 'edgar_form4' and url is not null and not (payload ? 'sale_value')
+"""
+
 GET_SETTING: Final[str] = "select value from setting where key = $1"
 
 PUT_SETTING: Final[str] = """

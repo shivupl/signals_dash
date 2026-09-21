@@ -204,3 +204,21 @@ class TestDerivatives:
         )
         assert doc.transactions[0].code == "P"
         assert doc.is_open_market_purchase is False
+
+
+class TestSales:
+    def test_a_sale_filing_reports_its_value(self) -> None:
+        """The insider table shows dollars bought against dollars sold."""
+        doc = parse_form4(SALE)
+        assert doc.sale_shares > 0
+        assert doc.sale_value == pytest.approx(
+            sum((t.shares or 0) * (t.price or 0) for t in doc.sales)
+        )
+
+    def test_a_purchase_filing_has_no_sales(self) -> None:
+        assert parse_form4(PURCHASE).sale_value == 0
+
+    def test_twenty_nine_transactions_sum_into_one_figure(self) -> None:
+        doc = parse_form4(MANY)
+        assert len(doc.sales) > 20
+        assert doc.sale_value > 0

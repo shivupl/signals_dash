@@ -16,6 +16,7 @@ from ..store.base import Store
 
 log = logging.getLogger(__name__)
 
+PRICE_HISTORY_DAYS = 90
 REFRESH_OPEN = 15 * 60  # during the session
 REFRESH_CLOSED = 60 * 60  # otherwise
 EARNINGS_EVERY = timedelta(hours=24)
@@ -25,7 +26,8 @@ async def refresh_prices(store: Store, prices: PriceService) -> int:
     """One pass. Returns the number of closes written."""
     companies = await store.watched_companies()
     by_ticker = {c.ticker: c for c in companies if c.ticker}
-    closes = await prices.daily_closes(sorted(by_ticker), days=10)
+    # Ninety days: enough history for the company page's price line.
+    closes = await prices.daily_closes(sorted(by_ticker), days=PRICE_HISTORY_DAYS)
     written = 0
     for ticker, points in closes.items():
         company = by_ticker.get(ticker)

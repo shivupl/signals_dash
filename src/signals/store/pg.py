@@ -238,6 +238,31 @@ class PgStore:
             for r in rows
         ]
 
+    async def company_by_ticker(self, ticker: str) -> dict[str, Any] | None:
+        row = await self._pool.fetchrow(q.COMPANY_BY_TICKER, ticker)
+        return dict(row) if row is not None else None
+
+    async def company_prices(self, company_id: int, days: int) -> list[tuple[date, Decimal]]:
+        rows = await self._pool.fetch(q.COMPANY_PRICES, company_id, days)
+        return [(r["d"], r["close"]) for r in rows]
+
+    async def company_form4(self, company_id: int, window: timedelta) -> list[dict[str, Any]]:
+        rows = await self._pool.fetch(q.COMPANY_FORM4, company_id, window)
+        out = []
+        for r in rows:
+            payload = r["payload"]
+            if isinstance(payload, str):
+                payload = json.loads(payload)
+            out.append({**dict(r), "payload": payload or {}})
+        return out
+
+    async def possible_aliases(self, name_stem: str) -> list[dict[str, Any]]:
+        return [dict(r) for r in await self._pool.fetch(q.POSSIBLE_ALIASES, name_stem)]
+
+    async def form4_missing_sales(self) -> list[dict[str, Any]]:
+        rows = await self._pool.fetch(q.FORM4_MISSING_SALES)
+        return [dict(r) for r in rows]
+
     async def count_excluded_from_latency(self, window: timedelta) -> int:
         """Backfilled and replayed events, which latency deliberately ignores."""
         return int(await self._pool.fetchval(q.EXCLUDED_FROM_LATENCY, window) or 0)

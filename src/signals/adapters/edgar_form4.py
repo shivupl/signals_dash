@@ -276,6 +276,8 @@ class EdgarForm4Adapter:
                     "is_open_market_purchase": doc.is_open_market_purchase,
                     "purchase_shares": doc.purchase_shares,
                     "purchase_value": doc.purchase_value,
+                    "sale_shares": doc.sale_shares,
+                    "sale_value": doc.sale_value,
                     "shares_after": doc.shares_after,
                     "plan_10b5_1": doc.plan_10b5_1,
                     "headline": headline,

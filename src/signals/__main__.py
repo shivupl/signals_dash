@@ -6,7 +6,7 @@ import asyncio
 import os
 import sys
 
-COMMANDS = ("worker", "api", "migrate", "seed", "replay")
+COMMANDS = ("worker", "api", "migrate", "seed", "replay", "rehydrate")
 
 
 def _dsn() -> str:
@@ -92,6 +92,18 @@ def cmd_worker(args: list[str]) -> int:
     return 0
 
 
+def cmd_rehydrate() -> int:
+    from .config import Settings
+    from .rehydrate import rehydrate_form4
+
+    stats = asyncio.run(rehydrate_form4(Settings.from_env()))
+    print(
+        f"form 4 rows missing sale values: {stats['rows']}  updated: {stats['updated']}  "
+        f"failed: {stats['failed']}"
+    )
+    return 0
+
+
 def cmd_api() -> int:
     from .api.app import serve
 
@@ -110,6 +122,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_seed()
     if command == "replay":
         return cmd_replay(args[1:])
+    if command == "rehydrate":
+        return cmd_rehydrate()
     if command == "api":
         return cmd_api()
     if command == "worker":

@@ -116,6 +116,19 @@ class Form4Doc:
         return sum(t.value or 0.0 for t in self.purchases)
 
     @property
+    def sales(self) -> tuple[Form4Transaction, ...]:
+        """Non-derivative open-market sales (code S)."""
+        return tuple(t for t in self.transactions if t.code == "S" and not t.is_derivative)
+
+    @property
+    def sale_shares(self) -> float:
+        return sum(t.shares or 0.0 for t in self.sales)
+
+    @property
+    def sale_value(self) -> float:
+        return sum(t.value or 0.0 for t in self.sales)
+
+    @property
     def shares_after(self) -> float | None:
         """Holdings after the last reported purchase, for relative sizing."""
         values = [t.shares_after for t in self.purchases if t.shares_after is not None]

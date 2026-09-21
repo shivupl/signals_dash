@@ -17,6 +17,7 @@ from ..bus.redis_bus import RedisSubscriber
 from ..config import Settings
 from ..store.pg import PgStore
 from . import deps
+from .routes_company import router as company_router
 from .routes_feed import router as feed_router
 from .routes_meta import router as meta_router
 from .ws import hub
@@ -66,14 +67,18 @@ def create_app() -> FastAPI:
 
     app.include_router(feed_router, prefix="/api")
     app.include_router(meta_router, prefix="/api")
+    app.include_router(company_router, prefix="/api")
     app.include_router(ws_router)
 
     # Serve the built UI when there is one, so `make up` is the whole story.
     if STATIC.is_dir():
         app.mount("/assets", StaticFiles(directory=STATIC / "assets"), name="assets")
 
+        # The UI routes client-side, so a reload on /company/AAPL has to get the
+        # same shell as /.
         @app.get("/")
-        async def index() -> FileResponse:
+        @app.get("/company/{ticker}")
+        async def index(ticker: str | None = None) -> FileResponse:
             # index.html names the hashed bundle, so it must always be revalidated;
             # cached, a rebuild stays invisible until a hard reload. The hashed
             # assets themselves can be cached forever.
