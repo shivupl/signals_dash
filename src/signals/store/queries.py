@@ -221,7 +221,8 @@ group by raw_name order by filings desc limit 10
 # Form 4 rows stored before sale values were recorded.
 FORM4_MISSING_SALES: Final[str] = """
 select external_id, url from event
-where source = 'edgar_form4' and url is not null and not (payload ? 'sale_value')
+where source = 'edgar_form4' and url is not null
+  and (not (payload ? 'sale_value') or payload->>'headline' like 'Form 4 filed by%')
 """
 
 GET_SETTING: Final[str] = "select value from setting where key = $1"
@@ -252,6 +253,10 @@ select c.id, c.ticker, c.name, c.next_earnings,
        max(e.occurred_at) as last_event_at
 from company c
 left join event e on e.company_id = c.id and e.score >= $1
+  -- The same source and category filters as the feed. Without them the header
+  -- could say "1 flag" beside a rail listing three flagged companies.
+  and ($2::text[] is null or e.source = any($2))
+  and ($3::text[] is null or e.category = any($3))
 where c.watched
 group by c.id, c.ticker, c.name, c.next_earnings
 order by flags desc, top desc, c.ticker

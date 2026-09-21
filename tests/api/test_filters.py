@@ -246,3 +246,20 @@ class TestMeta:
         body = (await client.get("/api/meta")).json()
         assert "distress" in {c["value"] for c in body["categories"]}
         assert {s["value"] for s in body["sources"]} >= {"edgar_8k", "halts", "system"}
+
+
+class TestRailHonoursTheFilters:
+    async def test_a_category_filter_narrows_the_rail_too(self, client: httpx.AsyncClient) -> None:
+        """Found in the browser: the header said 1 flag beside a rail listing three
+        flagged companies, because the rail ignored the event-type filter."""
+        feed = await client.get("/api/feed?min_score=1&range=7d&category=insider_buy")
+        rail = (await client.get("/api/watchlist?min_score=1&category=insider_buy")).json()
+        assert int(feed.headers["X-Flag-Count"]) == sum(r["flags"] for r in rail) == 1
+
+    async def test_a_source_filter_narrows_the_rail_too(self, client: httpx.AsyncClient) -> None:
+        rail = (await client.get("/api/watchlist?min_score=1&source=edgar_8k")).json()
+        assert {r["ticker"]: r["flags"] for r in rail} == {"AAA": 1, "BBB": 1}
+
+    async def test_every_watched_company_is_still_listed(self, client: httpx.AsyncClient) -> None:
+        rail = (await client.get("/api/watchlist?min_score=1&category=halt")).json()
+        assert len(rail) == 2

@@ -284,3 +284,31 @@ class TestStateBounds:
         for i in range(MAX_HYDRATED + 500):
             state.remember(f"acc-{i}")
         assert len(state.hydrated) <= MAX_HYDRATED
+
+
+class TestNonPurchaseHeadlines:
+    """"Form 4 filed by X" made a $21M sale by a CFO read like a tax withholding."""
+
+    def test_a_sale_says_it_is_a_sale_and_for_how_much(self) -> None:
+        from signals.adapters.edgar_form4 import describe_non_purchase
+        from signals.parsers.form4_xml import parse_form4
+
+        doc = parse_form4(read_fixture("edgar", "form4_sale.txt"))
+        headline, detail = describe_non_purchase(doc, "Jane Seller", "Director")
+        assert headline == "Insider sale by Jane Seller"
+        assert "$" in detail and "director" in detail
+
+    def test_a_grant_reads_as_compensation(self) -> None:
+        from signals.adapters.edgar_form4 import describe_non_purchase
+        from signals.parsers.form4_xml import parse_form4
+
+        headline, detail = describe_non_purchase(parse_form4(AWARD), "Pat Officer", "CFO")
+        assert headline == "Compensation filing by Pat Officer"
+        assert "grant" in detail
+
+    def test_a_plan_sale_says_so(self) -> None:
+        from signals.adapters.edgar_form4 import describe_non_purchase
+        from signals.parsers.form4_xml import parse_form4
+
+        doc = parse_form4(read_fixture("edgar", "form4_many_txns.txt"))
+        assert "10b5-1 plan" in describe_non_purchase(doc, "X", "Chair")[1]

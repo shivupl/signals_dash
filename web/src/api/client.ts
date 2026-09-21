@@ -1,3 +1,5 @@
+import { toApiParams, type Filters } from "../filters";
+
 export type Tier = "critical" | "high" | "background" | "quiet";
 
 export interface SignalEvent {
@@ -6,6 +8,7 @@ export interface SignalEvent {
   company: string | null;
   source: string;
   event_type: string;
+  category: string | null;
   occurred_at: string;
   ingested_at: string;
   summary: string | null;
@@ -31,32 +34,119 @@ export interface WatchlistEntry {
   next_earnings: string | null;
 }
 
-export interface Stats {
-  latency: { source: string; events: number; p50_seconds: number | null; p95_seconds: number | null }[];
-  unresolved: number;
-  flag_threshold: number;
+export interface SystemEvent {
+  id: number;
+  adapter: string | null;
+  state: "open" | "resolved" | "info";
+  event_type: string;
+  headline: string;
+  detail: string | null;
+  occurred_at: string;
+  minutes: number | null;
 }
 
-export interface FeedQuery {
-  minScore: number;
-  ticker?: string;
-  source?: string;
+export interface Option {
+  value: string;
+  label: string;
 }
 
-async function getJson<T>(path: string): Promise<T> {
-  const response = await fetch(path);
-  if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`);
+export interface Meta {
+  categories: Option[];
+  sources: Option[];
+}
+
+export interface Insider {
+  cik: string;
+  name: string;
+  role: string;
+  last_codes: string[];
+  last_date: string;
+  last_url: string | null;
+  bought_90d: number;
+  sold_90d: number;
+  filings: number;
+  plan_10b5_1: boolean;
+  in_cluster: boolean;
+}
+
+export interface CompanyPayload {
+  company: {
+    ticker: string;
+    name: string;
+    cik: string | null;
+    watched: boolean;
+    last_price: number | null;
+    week_change: number | null;
+    next_earnings: string | null;
+    flags_this_month: number;
+  };
+  events: SignalEvent[];
+  total: number;
+  prices: { d: string; close: number }[];
+  insiders: Insider[];
+  possible_aliases: { raw_name: string; filings: number; last_seen: string }[];
+}
+
+export interface FeedPage {
+  events: SignalEvent[];
+  /** Matches before the row limit. */
+  total: number;
+  /** Company events scoring above zero. A row scoring 0 is not a flag. */
+  flags: number;
+}
+
+async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(path, init);
+  if (!response.ok) {
+    let detail = `HTTP ${response.status}`;
+    try {
+      detail = (await response.json()).detail ?? detail;
+    } catch {
+      /* not JSON */
+    }
+    throw new Error(detail);
+  }
   return (await response.json()) as T;
 }
 
-export function fetchFeed(query: FeedQuery): Promise<SignalEvent[]> {
-  const params = new URLSearchParams({ min_score: String(query.minScore), limit: "200" });
-  if (query.ticker) params.set("ticker", query.ticker);
-  if (query.source) params.set("source", query.source);
-  return getJson<SignalEvent[]>(`/api/feed?${params}`);
+export async function fetchFeed(filters: Filters): Promise<FeedPage> {
+  const response = await fetch(`/api/feed?${toApiParams(filters, { limit: "300" })}`);
+  if (!response.ok) throw new Error(`feed: HTTP ${response.status}`);
+  const events = (await response.json()) as SignalEvent[];
+  return {
+    events,
+    total: Number(response.headers.get("X-Total-Count") ?? events.length),
+    flags: Number(response.headers.get("X-Flag-Count") ?? events.length),
+  };
 }
 
-export const fetchWatchlist = (): Promise<WatchlistEntry[]> =>
-  getJson<WatchlistEntry[]>("/api/watchlist?min_score=30");
+/** Same threshold as the header, floored at 1, so the rail and header agree. */
+export function fetchWatchlist(filters: Filters): Promise<WatchlistEntry[]> {
+  const q = new URLSearchParams({ min_score: String(Math.max(1, filters.minScore)) });
+  if (filters.sources.length) q.set("source", filters.sources.join(","));
+  if (filters.categories.length) q.set("category", filters.categories.join(","));
+  return getJson<WatchlistEntry[]>(`/api/watchlist?${q}`);
+}
 
-export const fetchStats = (): Promise<Stats> => getJson<Stats>("/api/stats");
+export const fetchSystem = (): Promise<SystemEvent[]> => getJson<SystemEvent[]>("/api/system");
+export const fetchMeta = (): Promise<Meta> => getJson<Meta>("/api/meta");
+
+export function fetchCompany(ticker: string, filters: Filters): Promise<CompanyPayload> {
+  const params = toApiParams({ ...filters, tickers: [], system: false });
+  return getJson<CompanyPayload>(`/api/company/${encodeURIComponent(ticker)}?${params}`);
+}
+
+export interface SettingsPayload {
+  flag_threshold: number;
+  editable: boolean;
+}
+
+export const fetchSettings = (): Promise<SettingsPayload> =>
+  getJson<SettingsPayload>("/api/settings");
+
+export const saveSettings = (flag_threshold: number, token: string): Promise<SettingsPayload> =>
+  getJson<SettingsPayload>("/api/settings", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", "X-Admin-Token": token },
+    body: JSON.stringify({ flag_threshold }),
+  });

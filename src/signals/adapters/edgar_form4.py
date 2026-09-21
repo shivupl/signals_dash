@@ -90,6 +90,24 @@ def _trim(store: dict[str, object] | dict[str, float] | dict[str, bool], limit: 
         store.pop(next(iter(store)))
 
 
+def describe_non_purchase(doc: Form4Doc, who: str, role: str) -> tuple[str, str]:
+    """Say what the filing was, not merely that it exists.
+
+    Most Form 4s are sales or compensation mechanics. "Form 4 filed by X" makes a
+    $21M sale by a CFO read the same as a routine tax withholding.
+    """
+    codes = sorted({t.code for t in doc.transactions})
+    tail = f"form 4 · {role.lower()}"
+    if doc.sale_value > 0:
+        plan = " · 10b5-1 plan" if doc.plan_10b5_1 else ""
+        return f"Insider sale by {who}", f"{tail} · ${doc.sale_value:,.0f}{plan}"
+    if codes and set(codes) <= {"A", "M", "F", "G", "C", "X"}:
+        kinds = {"A": "grant", "M": "option exercise", "F": "tax withholding", "G": "gift"}
+        what = ", ".join(dict.fromkeys(kinds.get(c, "other") for c in codes))
+        return f"Compensation filing by {who}", f"{tail} · {what}"
+    return f"Form 4 filed by {who}", f"{tail} · {', '.join(codes) or 'no transactions'}"
+
+
 def submission_url(index_link: str | None, accession: str) -> str | None:
     """The complete submission text, which carries the ownership XML inline.
 
@@ -245,9 +263,7 @@ class EdgarForm4Adapter:
             detail = " · ".join(detail_bits)
             event_type = "form4_buy"
         else:
-            codes = sorted({t.code for t in doc.transactions})
-            headline = f"Form 4 filed by {who}"
-            detail = f"form 4 · {role.lower()} · {', '.join(codes) or 'no transactions'}"
+            headline, detail = describe_non_purchase(doc, who, role)
             event_type = "form4_other"
 
         return [

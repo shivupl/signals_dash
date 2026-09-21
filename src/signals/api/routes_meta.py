@@ -22,9 +22,15 @@ router = APIRouter()
 
 
 @router.get("/watchlist", response_model=list[WatchlistOut])
-async def watchlist(min_score: int = Query(30, ge=0, le=100)) -> list[WatchlistOut]:
-    """Every watched company with its week. A heat map of where to look."""
-    rows = await get_store().watchlist(min_score)
+async def watchlist(
+    min_score: int = Query(30, ge=0, le=100),
+    source: str | None = None,
+    category: str | None = None,
+) -> list[WatchlistOut]:
+    """Every watched company with its week, under the feed's own filters."""
+    from .routes_feed import split
+
+    rows = await get_store().watchlist(min_score, split(source), split(category))
     return [WatchlistOut.of(r) for r in rows]
 
 

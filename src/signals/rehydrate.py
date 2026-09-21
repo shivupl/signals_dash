@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 
+from .adapters.edgar_form4 import describe_non_purchase
 from .clock import SystemClock
 from .config import Settings
 from .http import SourceClient
@@ -33,11 +34,17 @@ async def rehydrate_form4(settings: Settings) -> dict[str, int]:
                 log.warning("rehydrate %s failed: %s", row["external_id"], exc)
                 stats["failed"] += 1
                 continue
-            await store.update_payload(
-                "edgar_form4",
-                row["external_id"],
-                {"sale_shares": doc.sale_shares, "sale_value": doc.sale_value},
-            )
+            patch: dict[str, object] = {
+                "sale_shares": doc.sale_shares,
+                "sale_value": doc.sale_value,
+            }
+            if not doc.is_open_market_purchase:
+                owner = doc.primary_owner
+                headline, detail = describe_non_purchase(
+                    doc, owner.name if owner else "an insider", owner.role if owner else "Insider"
+                )
+                patch |= {"headline": headline, "detail": detail}
+            await store.update_payload("edgar_form4", row["external_id"], patch)
             stats["updated"] += 1
     finally:
         await http.aclose()

@@ -189,8 +189,15 @@ class PgStore:
         row = await self._pool.fetchrow(q.GET_EVENT, event_id)
         return _row_to_event(row) if row is not None else None
 
-    async def watchlist(self, min_score: int) -> list[WatchlistRow]:
-        rows = await self._pool.fetch(q.WATCHLIST, min_score)
+    async def watchlist(
+        self,
+        min_score: int,
+        sources: tuple[str, ...] = (),
+        categories: tuple[str, ...] = (),
+    ) -> list[WatchlistRow]:
+        rows = await self._pool.fetch(
+            q.WATCHLIST, min_score, list(sources) or None, list(categories) or None
+        )
         return [
             WatchlistRow(
                 company_id=r["id"],

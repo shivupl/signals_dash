@@ -1,13 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchFeed, type FeedQuery, type SignalEvent } from "./client";
+import type { Filters } from "../filters";
+import { toSearch } from "../filters";
+import { fetchFeed, type SignalEvent } from "./client";
 
 const FAST_POLL_MS = 5_000; // socket down: polling is all there is
 const SLOW_POLL_MS = 60_000; // socket up: a safety net, not the delivery path
 
-function matches(event: SignalEvent, query: FeedQuery): boolean {
-  if (event.score < query.minScore) return false;
-  if (query.ticker && (event.ticker ?? "").toUpperCase() !== query.ticker.toUpperCase()) return false;
-  if (query.source && event.source !== query.source) return false;
+/** Whether a pushed event belongs in the current view. Date bounds are left to
+ *  the next refetch: a pushed event is by definition "now". */
+function matches(event: SignalEvent, f: Filters): boolean {
+  if (event.source === "system" && !f.system && !f.sources.includes("system")) return false;
+  if (event.score < f.minScore) return false;
+  if (f.tickers.length && !f.tickers.includes((event.ticker ?? "").toUpperCase())) return false;
+  if (f.sources.length && !f.sources.includes(event.source)) return false;
+  if (f.categories.length && !f.categories.includes(event.category ?? "")) return false;
   return true;
 }
 
@@ -20,35 +26,37 @@ function sorted(map: Map<number, SignalEvent>): SignalEvent[] {
 /**
  * The feed: HTTP as the source of truth, the websocket as an optimisation.
  *
- * Pub/sub underneath is lossy -- a message published while this tab was
- * disconnected is simply gone. That is safe only because every (re)connect
- * refetches over HTTP, and pushed messages are applied on top of that.
- *
- * Responses are sequence-guarded: typing a ticker fires overlapping requests
- * that can return out of order, and a stale one must not overwrite a fresh one.
+ * Pub/sub underneath is lossy, which is safe only because every (re)connect
+ * refetches over HTTP and pushed messages are applied on top. Responses are
+ * sequence-guarded, since overlapping requests can return out of order.
  */
-export function useFeed(query: FeedQuery) {
+export function useFeed(filters: Filters, onPush?: (event: SignalEvent) => void) {
   const [events, setEvents] = useState<SignalEvent[]>([]);
+  const [total, setTotal] = useState(0);
+  const [flags, setFlags] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const [live, setLive] = useState(false);
   const [fresh, setFresh] = useState<Set<number>>(new Set());
 
   const byId = useRef(new Map<number, SignalEvent>());
   const latestRequest = useRef(0);
-  const queryRef = useRef(query);
-  queryRef.current = query;
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+  const onPushRef = useRef(onPush);
+  onPushRef.current = onPush;
+  const key = toSearch(filters);
 
   const load = useCallback(async () => {
     const sequence = ++latestRequest.current;
     try {
-      const rows = await fetchFeed(queryRef.current);
+      const page = await fetchFeed(filtersRef.current);
       if (sequence !== latestRequest.current) return;
-      byId.current = new Map(rows.map((r) => [r.id, r]));
-      setEvents(rows);
+      byId.current = new Map(page.events.map((r) => [r.id, r]));
+      setEvents(page.events);
+      setTotal(page.total);
+      setFlags(page.flags);
       setError(null);
-      setUpdatedAt(new Date());
     } catch (err) {
       if (sequence !== latestRequest.current) return;
       setError(err instanceof Error ? err.message : String(err));
@@ -57,36 +65,38 @@ export function useFeed(query: FeedQuery) {
     }
   }, []);
 
-  // One path for both event.new and event.updated. An "update" can be for an
-  // event this client never held -- a promoted insider buy that was below the
-  // score filter a minute ago -- so it must be able to insert, not only replace.
-  const upsert = useCallback((event: SignalEvent) => {
-    if (matches(event, queryRef.current)) byId.current.set(event.id, event);
-    else byId.current.delete(event.id);
-    setEvents(sorted(byId.current));
-    setUpdatedAt(new Date());
-    setFresh((prev) => new Set(prev).add(event.id));
-    setTimeout(() => {
-      setFresh((prev) => {
-        const next = new Set(prev);
-        next.delete(event.id);
-        return next;
-      });
-    }, 6000);
-  }, []);
+  // An "update" can be for an event this client never held -- a promoted insider
+  // buy that was below the score filter a minute ago -- so it must be able to
+  // insert, not only replace.
+  const upsert = useCallback(
+    (event: SignalEvent) => {
+      onPushRef.current?.(event);
+      const known = byId.current.has(event.id);
+      if (matches(event, filtersRef.current)) byId.current.set(event.id, event);
+      else byId.current.delete(event.id);
+      setEvents(sorted(byId.current));
+      if (!known) void load(); // counts come from the server; refresh them
+      setFresh((prev) => new Set(prev).add(event.id));
+      setTimeout(() => {
+        setFresh((prev) => {
+          const next = new Set(prev);
+          next.delete(event.id);
+          return next;
+        });
+      }, 6000);
+    },
+    [load],
+  );
 
-  // refetch whenever the filters change
   useEffect(() => {
     void load();
-  }, [load, query.minScore, query.ticker, query.source]);
+  }, [load, key]);
 
-  // polling: fast when the socket is down, slow when it is up
   useEffect(() => {
     const timer = setInterval(() => void load(), live ? SLOW_POLL_MS : FAST_POLL_MS);
     return () => clearInterval(timer);
   }, [load, live]);
 
-  // the socket, with reconnect backoff
   useEffect(() => {
     let socket: WebSocket | null = null;
     let retry: ReturnType<typeof setTimeout> | null = null;
@@ -99,7 +109,7 @@ export function useFeed(query: FeedQuery) {
       socket.onopen = () => {
         attempts = 0;
         setLive(true);
-        void load(); // catch up on anything published while disconnected
+        void load();
       };
       socket.onmessage = (frame) => {
         try {
@@ -120,7 +130,6 @@ export function useFeed(query: FeedQuery) {
       socket.onerror = () => socket?.close();
     };
     connect();
-
     return () => {
       closed = true;
       if (retry) clearTimeout(retry);
@@ -128,10 +137,10 @@ export function useFeed(query: FeedQuery) {
     };
   }, [load, upsert]);
 
-  return { events, error, loading, updatedAt, live, fresh, reload: load };
+  return { events, total, flags, error, loading, live, fresh, reload: load };
 }
 
-/** Delay a fast-changing value, so typing does not fire a request per keystroke. */
+/** Delay a fast-changing value, so dragging a slider is one request, not fifty. */
 export function useDebounced<T>(value: T, delayMs = 250): T {
   const [settled, setSettled] = useState(value);
   useEffect(() => {

@@ -1,82 +1,146 @@
-import { useEffect, useMemo, useState } from "react";
-import { fetchWatchlist, type WatchlistEntry } from "./api/client";
-import { useDebounced, useFeed } from "./api/useFeed";
-import { FeedList, marketDay } from "./components/FeedList";
-import { Filters, type FilterState } from "./components/Filters";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  fetchMeta,
+  fetchSystem,
+  fetchWatchlist,
+  type Meta,
+  type SignalEvent,
+  type SystemEvent,
+  type WatchlistEntry,
+} from "./api/client";
+import { useFeed } from "./api/useFeed";
+import { CompanyPage } from "./components/CompanyPage";
+import { FeedList } from "./components/FeedList";
+import { FilterBar } from "./components/FilterBar";
+import { marketDay } from "./components/format";
+import { SettingsPanel } from "./components/SettingsPanel";
+import { StatusStrip } from "./components/StatusStrip";
 import { WatchlistRail } from "./components/WatchlistRail";
+import { useFilters } from "./filters";
+import { companyFromPath, onInternalClick, useLocation } from "./router";
+
+const EMPTY_META: Meta = { categories: [], sources: [] };
 
 export default function App() {
-  const [filters, setFilters] = useState<FilterState>({
-    minScore: 30,
-    ticker: "",
-    source: "",
-  });
+  const { path } = useLocation();
+  const ticker = companyFromPath(path);
+  const [filters, setFilters, resetFilters] = useFilters();
+
   const [watchlist, setWatchlist] = useState<WatchlistEntry[]>([]);
+  const [system, setSystem] = useState<SystemEvent[]>([]);
+  const [meta, setMeta] = useState<Meta>(EMPTY_META);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // Debounced so a four-letter ticker is one request, not four.
-  const ticker = useDebounced(filters.ticker);
+  const refreshSystem = useCallback(() => {
+    void fetchSystem().then(setSystem).catch(() => undefined);
+  }, []);
 
-  const query = useMemo(
-    () => ({
-      minScore: filters.minScore,
-      ticker: ticker || undefined,
-      source: filters.source || undefined,
-    }),
-    [filters.minScore, ticker, filters.source],
+  // A pushed system event belongs in the strip, not the feed.
+  const onPush = useCallback(
+    (event: SignalEvent) => {
+      if (event.source === "system") refreshSystem();
+    },
+    [refreshSystem],
   );
 
-  const { events, loading, error, live, fresh } = useFeed(query);
+  const { events, total, flags, loading, error, live, fresh } = useFeed(filters, onPush);
 
   useEffect(() => {
-    void fetchWatchlist().then(setWatchlist).catch(() => setWatchlist([]));
-  }, [events.length]);
+    void fetchMeta().then(setMeta).catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    refreshSystem();
+    const timer = setInterval(refreshSystem, 60_000);
+    return () => clearInterval(timer);
+  }, [refreshSystem]);
+
+  // Same threshold as the header, so the two cannot disagree.
+  const railKey = `${filters.minScore}|${filters.sources}|${filters.categories}`;
+  useEffect(() => {
+    void fetchWatchlist(filters).then(setWatchlist).catch(() => setWatchlist([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [railKey, events.length]);
+
+  const companies = useMemo(
+    () =>
+      watchlist
+        .filter((w) => w.ticker)
+        .map((w) => ({ ticker: w.ticker as string, name: w.name }))
+        .sort((a, b) => a.ticker.localeCompare(b.ticker)),
+    [watchlist],
+  );
 
   const today = marketDay(new Date());
-  const todayCount = events.filter(
-    (e) => marketDay(e.occurred_at) === today,
-  ).length;
-
-  // Green only when flags are being pushed. Amber means it still works, but by
-  // polling -- worth knowing when you are waiting on something.
+  // Green only when flags are being pushed. Amber still works, but by polling.
   const dotClass = error ? "err" : live ? "" : "stale";
-
-  // "today" would be a lie on a feed of replayed filings, so it is only claimed
-  // when the rows really are from today.
-  // Below the threshold these are events on the record, not flags; calling a
-  // routine option grant a "flag" would cheapen the word.
-  const word = filters.minScore >= 30 ? "flag" : "event";
-  const noun = events.length === 1 ? word : `${word}s`;
-  const countLabel =
-    todayCount > 0 && todayCount === events.length
-      ? `${events.length} ${noun} today`
-      : `${events.length} ${noun}`;
+  const routine = total - flags - (filters.system ? events.filter((e) => e.source === "system").length : 0);
 
   return (
     <div className="page">
       <div className="shell">
         <header className="shell-head">
           <span className={`dot ${dotClass}`} />
-          <span className="brand" title={live ? "live: flags are pushed" : "polling every 5s"}>
+          <a className="brand" href="/" onClick={onInternalClick("/")}
+             title={live ? "live: flags are pushed" : "polling every 5s"}>
             Signals
-          </span>
+          </a>
           <span className="meta mono">
-            <b>{countLabel}</b> · <b>{watchlist.length}</b> watched · times ET
+            {/* Feed-wide counts would be noise on a page about one company. */}
+            {!ticker && (
+              <>
+                <b>
+                  {flags} flag{flags === 1 ? "" : "s"}
+                </b>
+                {routine > 0 && <> · {routine} routine</>} ·{" "}
+              </>
+            )}
+            <b>{watchlist.length}</b> watched · times ET
           </span>
           <span className="spacer" />
-          <Filters value={filters} onChange={setFilters} />
+          <button className="gear" onClick={() => setSettingsOpen(true)} aria-label="Settings" title="Settings">
+            ⚙
+          </button>
         </header>
 
-        <div className="split">
-          <FeedList events={events} loading={loading} error={error} today={today} fresh={fresh} />
-          <WatchlistRail
-            entries={watchlist}
-            selected={filters.ticker}
-            onSelect={(t) => setFilters({ ...filters, ticker: t })}
+        <StatusStrip events={system} />
+
+        {ticker ? (
+          <CompanyPage
+            ticker={ticker}
+            filters={filters}
+            onChange={setFilters}
+            onReset={resetFilters}
+            sources={meta.sources}
+            categories={meta.categories}
           />
-        </div>
+        ) : (
+          <>
+            <FilterBar
+              filters={filters}
+              onChange={setFilters}
+              onReset={resetFilters}
+              sources={meta.sources}
+              categories={meta.categories}
+              companies={companies}
+            />
+            <div className="split">
+              <FeedList
+                events={events}
+                loading={loading}
+                error={error}
+                today={today}
+                fresh={fresh}
+                total={total}
+              />
+              <WatchlistRail entries={watchlist} />
+            </div>
+          </>
+        )}
       </div>
 
       <footer>Public data only. Finds signals; makes no decisions.</footer>
+      {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
     </div>
   );
 }
