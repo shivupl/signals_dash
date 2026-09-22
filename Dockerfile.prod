@@ -30,6 +30,8 @@ RUN pip install --no-cache-dir -e .
 COPY config/ ./config/
 COPY db/ ./db/
 COPY scripts/ ./scripts/
+# `seed` loads the SEC ticker map from this committed snapshot, offline by design.
+COPY tests/fixtures/edgar/company_tickers.json ./tests/fixtures/edgar/
 COPY --from=web /web/dist ./web/dist
 
 RUN useradd --create-home --uid 1000 signals && chown -R signals:signals /app
