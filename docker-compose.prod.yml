@@ -1,0 +1,81 @@
+# Production stack. Standalone -- do not layer it over docker-compose.yml:
+#
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Only Caddy publishes ports. Postgres, Redis and the API are reachable solely on
+# the compose network, and Caddy terminates TLS for $SIGNALS_DOMAIN.
+
+x-app: &app
+  build:
+    context: .
+    dockerfile: Dockerfile.prod
+  image: signals-app
+  env_file: .env
+  volumes:
+    # The real watchlist lives on the host (gitignored), so editing it needs a
+    # restart and a `seed`, not a rebuild.
+    - ./config/watchlist.yml:/app/config/watchlist.yml:ro
+  depends_on:
+    postgres: {condition: service_healthy}
+    redis: {condition: service_healthy}
+  restart: unless-stopped
+  logging: &logging
+    driver: json-file
+    options: {max-size: "10m", max-file: "5"}
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: signals
+      TZ: UTC
+      PGTZ: UTC
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d signals"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    logging: *logging
+
+  redis:
+    image: redis:7
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    logging: *logging
+
+  worker:
+    <<: *app
+    command: python -m signals worker
+
+  api:
+    <<: *app
+    command: python -m signals api
+
+  caddy:
+    image: caddy:2
+    environment:
+      SIGNALS_DOMAIN: ${SIGNALS_DOMAIN:?set SIGNALS_DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [api]
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  pgdata: {}
+  caddy_data: {}
+  caddy_config: {}
