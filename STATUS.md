@@ -273,3 +273,13 @@ outcome log) -- for which `price_at` is now being recorded from day one.
     make psql      # poke at the data
     make seed      # re-read config/watchlist.yml (then: docker compose restart worker)
     make fixtures  # re-capture test fixtures from the live network
+
+## Deployed (2026-09-22)
+
+Runs on a 1 vCPU / 2 GB DigitalOcean droplet at https://signals.shivuppal.com
+from `docker-compose.prod.yml`; see `deploy/README.md`. Caddy terminates TLS
+(Let's Encrypt, auto-renewing), and only 80/443 are published. The local
+database was carried over with `pg_dump`/`pg_restore` (79 events, 8,022
+companies, 3,640 price rows; counts matched after restore). A reboot test
+brought all five services back unattended. The laptop stack is stopped so SEC
+is polled from one place only.
