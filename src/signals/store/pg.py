@@ -68,6 +68,10 @@ class PgStore:
         rows = await self._pool.fetch(q.WATCHED_CIKS)
         return frozenset(r["value"] for r in rows)
 
+    async def universe_ciks(self, universe: str) -> frozenset[str]:
+        rows = await self._pool.fetch(q.UNIVERSE_CIKS, universe)
+        return frozenset(r["value"] for r in rows)
+
     async def record_unresolved(
         self, source: str, external_id: str, raw_name: str, payload: dict[str, Any]
     ) -> None:
@@ -152,6 +156,8 @@ class PgStore:
             list(f.categories) or None,
             # Asking for the system source by name is asking to see it.
             f.include_system or "system" in f.sources,
+            f.universe,
+            list(f.exclude_categories) or None,
         )
 
     async def feed(self, filters: FeedFilter) -> list[EventRow]:

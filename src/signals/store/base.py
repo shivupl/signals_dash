@@ -79,6 +79,12 @@ class FeedFilter:
     categories: tuple[str, ...] = ()
     #: System events are the pipeline talking about itself. Off by default.
     include_system: bool = False
+    #: Which monitor is being looked through: 'core', 'sp500', or None for every
+    #: company. A lens over stored events -- it never changes what gets ingested.
+    universe: str | None = None
+    #: Categories to leave out. An include-list cannot say "everything except
+    #: earnings", which is what the index view needs by default.
+    exclude_categories: tuple[str, ...] = ()
     limit: int = 200
     offset: int = 0
 
@@ -87,6 +93,7 @@ class Store(Protocol):
     async def find_company(self, key: CompanyKey) -> Company | None: ...
     async def watched_company_ids(self) -> frozenset[int]: ...
     async def watched_ciks(self) -> frozenset[str]: ...
+    async def universe_ciks(self, universe: str) -> frozenset[str]: ...
     async def watched_tickers(self) -> frozenset[str]: ...
     async def record_unresolved(
         self, source: str, external_id: str, raw_name: str, payload: dict[str, Any]

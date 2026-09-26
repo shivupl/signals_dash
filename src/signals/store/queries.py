@@ -33,6 +33,14 @@ where a.kind = $1 and a.value = $2
 
 WATCHED_COMPANY_IDS: Final[str] = "select id from company where watched"
 
+# CIKs of one monitor's members. The reconciliation sweep uses this to visit the
+# hand-picked names every time and rotate through the rest.
+UNIVERSE_CIKS: Final[str] = """
+select a.value from company_alias a
+join universe_member m on m.company_id = a.company_id
+where a.kind = 'cik' and m.universe = $1
+"""
+
 # The Form 4 adapter needs CIKs, not ids: it decides whether a filing is worth a
 # document fetch from the issuer CIK in the index, before anything is stored.
 WATCHED_CIKS: Final[str] = """
@@ -152,6 +160,14 @@ where e.score >= $1
   and ($5::text[] is null or e.source = any($5))
   and ($6::text[] is null or e.category = any($6))
   and ($7::boolean or e.source <> 'system')
+  -- Membership, when a monitor is selected. A system event belongs to no
+  -- company, so it is kept on its own terms: asked for, it shows; otherwise the
+  -- clause above has already excluded it.
+  and ($8::text is null
+       or (e.source = 'system' and $7)
+       or exists (select 1 from universe_member m
+                   where m.company_id = e.company_id and m.universe = $8))
+  and ($9::text[] is null or e.category is null or not (e.category = any($9)))
 """
 
 FEED: Final[str] = f"""
@@ -160,7 +176,7 @@ from event e
 left join company c on c.id = e.company_id
 {_FEED_WHERE}
 order by e.occurred_at desc, e.id desc
-limit $8 offset $9
+limit $10 offset $11
 """
 
 # What the header reports. Same predicate as the feed, so the two cannot disagree.
