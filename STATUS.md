@@ -283,3 +283,38 @@ database was carried over with `pg_dump`/`pg_restore` (79 events, 8,022
 companies, 3,640 price rows; counts matched after restore). A reboot test
 brought all five services back unattended. The laptop stack is stopped so SEC
 is polled from one place only.
+
+## S&P 500 universe (2026-09-25)
+
+A second monitor: `My 40` (threshold 30) and `S&P 500` (threshold 50, earnings
+hidden by default), switched in the header and carried in the URL.
+
+**Measured before designing.** All 500 index CIKs over six days via
+`data.sec.gov/submissions`: 38-75 Form 4s a day (323 total), 10-22 8-Ks (94), and
+zero 13D/Gs. About seventy events a day, not the 200-500 I guessed -- which is why
+this needed no new rate-limit machinery.
+
+**Membership is a lens, not a second pipeline.** `universe_member` names which
+companies are in which monitor; `company.watched` keeps meaning "ingest this
+company" and is derived from membership at seed time. The worker still reads one
+flat set of CIKs, so resolution, scoring, dedupe and promotion are untouched.
+
+**Matched on CIK, not ticker.** The index's 503 symbols are 500 filers -- GOOGL/GOOG,
+FOX/FOXA, NWS/NWSA are dual classes of one filer. A ticker match would have
+created rows no filing could ever resolve to. 16 of the 40 are index members, so
+the union is 524 companies.
+
+**Two loads that had to be contained.** The reconciliation sweep visited every
+watched company every 30 minutes; at 524 that is a 500-request burst, so core is
+now swept every time and the index in rotating quarters (full coverage every two
+hours, ~0.3 req/s against an 8 req/s budget). And the price loop silently widened
+with the universe -- `watched_companies()` returned all 524 -- which would have
+meant a 524-ticker pull every fifteen minutes; it is now scoped to core, with
+index charts fetched on first open and cached.
+
+**Caught in review, not by tests:** the filter pill read "Earnings" while earnings
+were being *hidden*. It now reads "no earnings".
+
+**First live signals:** a Berkshire Hathaway open-market buy in Lennar (70) and a
+delisting notice for PSKY (85) -- both index names the old 40-name watchlist could
+never have surfaced.

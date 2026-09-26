@@ -54,13 +54,34 @@ the feed as a flag of its own.
 | EDGAR Form 4 | Open-market insider buys; grants and sales score 0 | index poll + one document fetch per watched filing |
 | EDGAR 13D/G | Activist (85) vs passive (30) stakes | index poll, 4 s |
 | Trading halts | News pending, regulatory, volatility | Nasdaq Trader RSS, 10 s — covers NYSE/Arca/AMEX too |
-| Prices | `price_at` on every flag, weekly change, earnings dates | yfinance, best-effort, never blocks a flag |
+| Prices | `price_at` on every flag, weekly change, earnings dates | yfinance, best-effort, never blocks a flag; the 15-minute refresh covers `My 40`, index names fill on demand |
+
+Measured over six days, the 500 index members file **38-75 Form 4s and 10-22 8-Ks
+a day, and no 13D/Gs at all** -- so the second monitor adds roughly seventy events
+a day, not the hundreds it looks like it should.
 
 `config/watchlist.yml` is gitignored — what you watch is your own business. Without
 one, seeding falls back to the committed example. After editing:
 `make seed && docker compose restart worker`.
 
 ## Using it
+
+**Two monitors.** `My 40` is the hand-picked watchlist at threshold 30. `S&P 500`
+is every index member, where the feed defaults to score 50 and hides earnings 8-Ks
+-- 500 companies reporting once a quarter is ~25 flags a day of news you already
+expected, and one click brings them back. Both defaults are display state written
+to the URL, so a link always describes what is on screen.
+
+Membership lives in `config/sp500.yml`, committed and matched on **CIK, not
+ticker**: the index's 503 symbols are 500 filers, because of dual share classes.
+Refresh it with `make sp500`, which prints the added/removed diff so an index
+change is a commit you can see. Seeding reconciles from the file, so a name that
+leaves the index stops being ingested unless it is also one of your 40.
+
+Index names are not on the 15-minute price refresh -- that would be 524 tickers a
+quarter hour for charts nobody opened. Their `price_at` is still stamped per
+event, and the 90-day chart is fetched the first time you open that company page,
+then cached (about a second, once).
 
 **The feed** takes a filter bar — tickers (typeahead, multi-select), source, event
 type, a score slider and a date range — and keeps all of it in the URL, so a view
