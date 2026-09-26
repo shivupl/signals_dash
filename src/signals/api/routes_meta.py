@@ -10,6 +10,7 @@ from fastapi import APIRouter, Header, HTTPException, Query
 from ..categories import CATEGORY_LABELS
 from .deps import get_settings, get_store
 from .schemas import (
+    ActiveOut,
     SettingsIn,
     SettingsOut,
     SourceLatencyOut,
@@ -26,12 +27,45 @@ async def watchlist(
     min_score: int = Query(30, ge=0, le=100),
     source: str | None = None,
     category: str | None = None,
+    universe: str | None = None,
 ) -> list[WatchlistOut]:
     """Every watched company with its week, under the feed's own filters."""
-    from .routes_feed import split
+    from .routes_feed import UNIVERSES, split
 
-    rows = await get_store().watchlist(min_score, split(source), split(category))
+    if universe is not None and universe not in UNIVERSES:
+        raise HTTPException(status_code=422, detail=f"universe must be one of {UNIVERSES}")
+    rows = await get_store().watchlist(
+        min_score,
+        split(source),
+        split(category),
+        None if universe == "all" else universe,
+    )
     return [WatchlistOut.of(r) for r in rows]
+
+
+@router.get("/active", response_model=list[ActiveOut])
+async def active(
+    universe: str = Query("sp500"),
+    min_score: int = Query(30, ge=0, le=100),
+    range_: str | None = Query(None, alias="range"),
+    source: str | None = None,
+    category: str | None = None,
+    limit: int = Query(10, ge=1, le=50),
+) -> list[ActiveOut]:
+    """The busiest names in a universe -- the rail, when it cannot list 500 rows.
+
+    Ranked by flags rather than by price move: index names are not on the price
+    refresh, so a "change this week" column would be mostly empty.
+    """
+    from .routes_feed import UNIVERSES, split, window
+
+    if universe not in UNIVERSES or universe == "all":
+        raise HTTPException(status_code=422, detail="universe must be core or sp500")
+    since, _ = window(range_, None, None)
+    rows = await get_store().active_companies(
+        universe, min_score, since, split(source), split(category), limit
+    )
+    return [ActiveOut.of(r) for r in rows]
 
 
 @router.get("/stats", response_model=StatsOut)

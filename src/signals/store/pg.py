@@ -14,7 +14,7 @@ import asyncpg
 from ..categories import categorize
 from ..models import Company, CompanyKey, ResolvedEvent, Score
 from . import queries as q
-from .base import EventRow, FeedFilter, SourceLatency, WatchlistRow
+from .base import ActiveRow, EventRow, FeedFilter, SourceLatency, WatchlistRow
 
 
 class PgStore:
@@ -200,9 +200,10 @@ class PgStore:
         min_score: int,
         sources: tuple[str, ...] = (),
         categories: tuple[str, ...] = (),
+        universe: str | None = None,
     ) -> list[WatchlistRow]:
         rows = await self._pool.fetch(
-            q.WATCHLIST, min_score, list(sources) or None, list(categories) or None
+            q.WATCHLIST, min_score, list(sources) or None, list(categories) or None, universe
         )
         return [
             WatchlistRow(
@@ -215,6 +216,36 @@ class PgStore:
                 last_price=r["last_price"],
                 week_ago_price=r["week_ago_price"],
                 next_earnings=r["next_earnings"],
+            )
+            for r in rows
+        ]
+
+    async def active_companies(
+        self,
+        universe: str,
+        min_score: int,
+        since: datetime | None = None,
+        sources: tuple[str, ...] = (),
+        categories: tuple[str, ...] = (),
+        limit: int = 10,
+    ) -> list[ActiveRow]:
+        rows = await self._pool.fetch(
+            q.ACTIVE_COMPANIES,
+            universe,
+            min_score,
+            since,
+            list(sources) or None,
+            list(categories) or None,
+            limit,
+        )
+        return [
+            ActiveRow(
+                company_id=r["id"],
+                ticker=r["ticker"],
+                name=r["name"],
+                flags=r["flags"],
+                top_score=r["top"] or 0,
+                last_event_at=r["last_event_at"],
             )
             for r in rows
         ]

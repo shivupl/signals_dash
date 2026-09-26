@@ -274,8 +274,31 @@ left join event e on e.company_id = c.id and e.score >= $1
   and ($2::text[] is null or e.source = any($2))
   and ($3::text[] is null or e.category = any($3))
 where c.watched
+  and ($4::text is null or exists (
+        select 1 from universe_member m
+        where m.company_id = c.id and m.universe = $4))
 group by c.id, c.ticker, c.name, c.next_earnings
 order by flags desc, top desc, c.ticker
+"""
+
+# The index rail: the busiest names in a universe. An inner join on event,
+# because "most active" means it had events -- 500 quiet rows are not a rail. No
+# price columns either: index names are not on the 15-minute refresh, so there is
+# no week figure to show and none is promised.
+ACTIVE_COMPANIES: Final[str] = """
+select c.id, c.ticker, c.name,
+       count(e.id) as flags,
+       max(e.score) as top,
+       max(e.occurred_at) as last_event_at
+from company c
+join universe_member m on m.company_id = c.id and m.universe = $1
+join event e on e.company_id = c.id and e.score >= $2
+  and ($3::timestamptz is null or e.occurred_at >= $3)
+  and ($4::text[] is null or e.source = any($4))
+  and ($5::text[] is null or e.category = any($5))
+group by c.id, c.ticker, c.name
+order by flags desc, top desc, c.ticker
+limit $6
 """
 
 # The number worth quoting: detection lag, per source, measured not estimated.

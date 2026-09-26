@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from ..store.base import EventRow, SourceLatency, WatchlistRow
+from ..store.base import ActiveRow, EventRow, SourceLatency, WatchlistRow
 
 
 class EventOut(BaseModel):
@@ -68,6 +68,28 @@ def tier_for(score: int) -> str:
     if score >= 30:
         return "background"
     return "quiet"
+
+
+class ActiveOut(BaseModel):
+    """A busy name in a universe. No price: index names are not refreshed."""
+
+    company_id: int
+    ticker: str | None
+    name: str
+    flags: int
+    top_score: int
+    last_event_at: datetime | None
+
+    @classmethod
+    def of(cls, row: ActiveRow) -> ActiveOut:
+        return cls(
+            company_id=row.company_id,
+            ticker=row.ticker,
+            name=row.name,
+            flags=row.flags,
+            top_score=row.top_score,
+            last_event_at=row.last_event_at,
+        )
 
 
 class WatchlistOut(BaseModel):

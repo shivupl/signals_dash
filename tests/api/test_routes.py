@@ -252,3 +252,120 @@ class TestStatsExcludesBackfill:
         body = (await client.get("/api/stats")).json()
         assert body["excluded_from_latency"] >= 1
         assert "worker started" in body["latency_note"]
+
+
+class TestUniverses:
+    """Which monitor you are looking through."""
+
+    @staticmethod
+    async def _members(pg: asyncpg.Connection) -> None:
+        core_id = await pg.fetchval(
+            "insert into company (cik, ticker, name, watched) "
+            "values ('0000000011', 'CORE', 'Core Inc.', true) returning id"
+        )
+        sp_id = await pg.fetchval(
+            "insert into company (cik, ticker, name, watched) "
+            "values ('0000000012', 'SPX', 'Spx Inc.', true) returning id"
+        )
+        await pg.execute(
+            "insert into universe_member (company_id, universe) values ($1,'core'), ($2,'sp500')",
+            core_id,
+            sp_id,
+        )
+        for company_id, external_id, category in (
+            (core_id, "u1", "other"),
+            (sp_id, "u2", "other"),
+            (sp_id, "u3", "earnings"),
+        ):
+            await pg.execute(
+                """
+                insert into event (company_id, source, event_type, occurred_at, external_id,
+                                   score, payload, category)
+                values ($1, 'edgar_8k', '8k', $2, $3, 55, '{}'::jsonb, $4)
+                """,
+                company_id,
+                NOW,
+                external_id,
+                category,
+            )
+
+    async def test_feed_filters_by_universe(
+        self, client: httpx.AsyncClient, pg: asyncpg.Connection
+    ) -> None:
+        await self._members(pg)
+        core = await client.get("/api/feed?universe=core&min_score=0")
+        sp500 = await client.get("/api/feed?universe=sp500&min_score=0")
+        everything = await client.get("/api/feed?universe=all&min_score=0")
+
+        assert [e["ticker"] for e in core.json()] == ["CORE"]
+        assert {e["ticker"] for e in sp500.json()} == {"SPX"}
+        assert {e["ticker"] for e in everything.json()} >= {"CORE", "SPX"}
+        assert core.headers["X-Total-Count"] == "1"
+
+    async def test_rejects_an_unknown_universe(self, client: httpx.AsyncClient) -> None:
+        response = await client.get("/api/feed?universe=nasdaq100")
+        assert response.status_code == 422
+        assert "universe" in response.json()["detail"]
+
+    async def test_exclude_category_hides_only_that_kind(
+        self, client: httpx.AsyncClient, pg: asyncpg.Connection
+    ) -> None:
+        """What the index view needs by default: every member reports earnings
+        once a quarter, which is news you already expected."""
+        await self._members(pg)
+        response = await client.get(
+            "/api/feed?universe=sp500&min_score=0&exclude_category=earnings"
+        )
+        assert [e["category"] for e in response.json()] == ["other"]
+
+    async def test_rejects_an_unknown_excluded_category(self, client: httpx.AsyncClient) -> None:
+        response = await client.get("/api/feed?exclude_category=nonsense")
+        assert response.status_code == 422
+
+    async def test_the_rail_can_be_asked_for_one_universe(
+        self, client: httpx.AsyncClient, pg: asyncpg.Connection
+    ) -> None:
+        await self._members(pg)
+        rows = (await client.get("/api/watchlist?min_score=1&universe=core")).json()
+        assert [r["ticker"] for r in rows] == ["CORE"]
+
+
+class TestActive:
+    async def test_lists_the_busiest_names_in_a_universe(
+        self, client: httpx.AsyncClient, pg: asyncpg.Connection
+    ) -> None:
+        busy_id = await pg.fetchval(
+            "insert into company (cik, ticker, name, watched) "
+            "values ('0000000013', 'BUSY', 'Busy Inc.', true) returning id"
+        )
+        quiet_id = await pg.fetchval(
+            "insert into company (cik, ticker, name, watched) "
+            "values ('0000000014', 'QUIET', 'Quiet Inc.', true) returning id"
+        )
+        await pg.execute(
+            "insert into universe_member (company_id, universe) "
+            "values ($1,'sp500'), ($2,'sp500')",
+            busy_id,
+            quiet_id,
+        )
+        for n, score in enumerate((60, 70, 40)):
+            await pg.execute(
+                """
+                insert into event (company_id, source, event_type, occurred_at, external_id,
+                                   score, payload, category)
+                values ($1, 'edgar_8k', '8k', $2, $3, $4, '{}'::jsonb, 'other')
+                """,
+                busy_id,
+                NOW,
+                f"busy{n}",
+                score,
+            )
+
+        rows = (await client.get("/api/active?universe=sp500&min_score=30&limit=10")).json()
+        assert [r["ticker"] for r in rows] == ["BUSY"], "a company with no flags is not active"
+        assert rows[0]["flags"] == 3
+        assert rows[0]["top_score"] == 70
+
+    async def test_rejects_all_as_a_universe(self, client: httpx.AsyncClient) -> None:
+        """"all" is the absence of a filter, which is not a rail."""
+        assert (await client.get("/api/active?universe=all")).status_code == 422

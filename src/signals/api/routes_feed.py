@@ -16,6 +16,8 @@ from .schemas import EventOut
 router = APIRouter()
 
 RANGES = ("today", "7d", "30d")
+#: "all" is the absence of a filter, not a third universe.
+UNIVERSES = ("core", "sp500", "all")
 
 
 def split(value: str | None) -> tuple[str, ...]:
@@ -57,11 +59,16 @@ def build_filter(
     since: datetime | None,
     until: datetime | None,
     system: bool,
+    universe: str | None = None,
+    exclude_category: str | None = None,
     limit: int = 200,
     offset: int = 0,
 ) -> FeedFilter:
+    if universe is not None and universe not in UNIVERSES:
+        raise HTTPException(status_code=422, detail=f"universe must be one of {UNIVERSES}")
     categories = split(category)
-    unknown = [c for c in categories if c not in CATEGORY_LABELS]
+    excluded = split(exclude_category)
+    unknown = [c for c in (*categories, *excluded) if c not in CATEGORY_LABELS]
     if unknown:
         raise HTTPException(status_code=422, detail=f"unknown category: {', '.join(unknown)}")
     start, end = window(range_, since, until)
@@ -73,6 +80,9 @@ def build_filter(
         sources=split(source),
         categories=categories,
         include_system=system,
+        # "all" means no membership predicate at all.
+        universe=None if universe in (None, "all") else universe,
+        exclude_categories=excluded,
         limit=limit,
         offset=offset,
     )
@@ -89,6 +99,8 @@ async def feed(
     since: datetime | None = None,
     until: datetime | None = None,
     system: bool = Query(False, description="include the pipeline's own events"),
+    universe: str | None = Query(None, description="core, sp500 or all"),
+    exclude_category: str | None = Query(None, description="comma-separated"),
     limit: int = Query(200, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ) -> list[EventOut]:
@@ -106,6 +118,8 @@ async def feed(
         since=since,
         until=until,
         system=system,
+        universe=universe,
+        exclude_category=exclude_category,
         limit=limit,
         offset=offset,
     )

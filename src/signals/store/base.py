@@ -62,6 +62,18 @@ class WatchlistRow:
 
 
 @dataclass(frozen=True, slots=True)
+class ActiveRow:
+    """A busy company in a universe. No price: index names are not refreshed."""
+
+    company_id: int
+    ticker: str | None
+    name: str
+    flags: int
+    top_score: int
+    last_event_at: datetime | None
+
+
+@dataclass(frozen=True, slots=True)
 class SourceLatency:
     source: str
     events: int
@@ -123,8 +135,21 @@ class Store(Protocol):
     async def put_setting(self, key: str, value: str) -> None: ...
     async def get_event(self, event_id: int) -> EventRow | None: ...
     async def watchlist(
-        self, min_score: int, sources: tuple[str, ...] = (), categories: tuple[str, ...] = ()
+        self,
+        min_score: int,
+        sources: tuple[str, ...] = (),
+        categories: tuple[str, ...] = (),
+        universe: str | None = None,
     ) -> list[WatchlistRow]: ...
+    async def active_companies(
+        self,
+        universe: str,
+        min_score: int,
+        since: datetime | None = None,
+        sources: tuple[str, ...] = (),
+        categories: tuple[str, ...] = (),
+        limit: int = 10,
+    ) -> list[ActiveRow]: ...
     async def latency_percentiles(self, window: timedelta) -> list[SourceLatency]: ...
     async def count_unresolved(self) -> int: ...
     async def upsert_price_daily(self, company_id: int, d: date, close: Decimal) -> None: ...
