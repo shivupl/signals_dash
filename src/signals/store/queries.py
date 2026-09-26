@@ -241,6 +241,10 @@ where source = 'edgar_form4' and url is not null
   and (not (payload ? 'sale_value') or payload->>'headline' like 'Form 4 filed by%')
 """
 
+COMPANY_UNIVERSES: Final[str] = """
+select universe from universe_member where company_id = $1 order by universe
+"""
+
 GET_SETTING: Final[str] = "select value from setting where key = $1"
 
 PUT_SETTING: Final[str] = """

@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from ..config import Settings
+from ..prices import PriceService
 from ..store.pg import PgStore
 
 _store: PgStore | None = None
 _settings: Settings | None = None
+_prices: PriceService | None = None
 
 
 def set_store(store: PgStore | None) -> None:
@@ -17,6 +19,16 @@ def set_store(store: PgStore | None) -> None:
 def set_settings(settings: Settings | None) -> None:
     global _settings
     _settings = settings
+
+
+def set_prices(prices: PriceService | None) -> None:
+    global _prices
+    _prices = prices
+
+
+def get_prices() -> PriceService | None:
+    """None is a legitimate answer: with no provider the chart simply stays empty."""
+    return _prices
 
 
 def get_store() -> PgStore:

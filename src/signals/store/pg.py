@@ -220,6 +220,10 @@ class PgStore:
             for r in rows
         ]
 
+    async def company_universes(self, company_id: int) -> list[str]:
+        rows = await self._pool.fetch(q.COMPANY_UNIVERSES, company_id)
+        return [r["universe"] for r in rows]
+
     async def active_companies(
         self,
         universe: str,

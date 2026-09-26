@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import re
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 
 from ..store.base import FeedFilter
+from ..store.pg import PgStore
 from . import deps
 from .routes_feed import split, window
 from .schemas import EventOut
@@ -16,6 +18,7 @@ from .schemas import EventOut
 router = APIRouter()
 
 INSIDER_WINDOW_DAYS = 90
+PRICE_HISTORY_DAYS = 90
 _SUFFIXES = re.compile(
     r"\b(inc|corp|corporation|co|company|ltd|plc|llc|lp|l p|holdings?|group|the|class [a-z])\b\.?",
     re.I,
@@ -74,6 +77,28 @@ def insiders_from(rows: list[Any], now: datetime) -> list[dict[str, Any]]:
     return sorted(people.values(), key=lambda x: (-x["bought_90d"], -x["sold_90d"], x["name"]))
 
 
+async def ensure_prices(
+    store: PgStore, company_id: int, ticker: str, universes: list[str]
+) -> list[tuple[date, Decimal]]:
+    """Price history, fetched once for a name the worker does not refresh.
+
+    Core names ride the worker's 15-minute loop, so they are never fetched here.
+    An index name pays for its history on the first open and every later open
+    reads the cached rows. A provider failure returns what we have: a chart is
+    never worth a 500, and the next open tries again.
+    """
+    prices = await store.company_prices(company_id, PRICE_HISTORY_DAYS)
+    if prices or "core" in universes:
+        return prices
+    service = deps.get_prices()
+    if service is None:
+        return prices
+    closes = await service.daily_closes([ticker], days=PRICE_HISTORY_DAYS)
+    for day, close in (closes.get(ticker) or {}).items():
+        await store.upsert_price_daily(company_id, day, close)
+    return await store.company_prices(company_id, PRICE_HISTORY_DAYS)
+
+
 @router.get("/company/{ticker}")
 async def company(
     ticker: str,
@@ -112,7 +137,8 @@ async def company(
 
     now = datetime.now(tz=UTC)
     month = FeedFilter(min_score=1, since=now - timedelta(days=30), tickers=(row["ticker"],))
-    prices = await store.company_prices(row["id"], 90)
+    universes = await store.company_universes(row["id"])
+    prices = await ensure_prices(store, row["id"], row["ticker"], universes)
     form4 = await store.company_form4(row["id"], timedelta(days=365))
     stem = name_stem(row["name"])
     aliases = await store.possible_aliases(stem) if len(stem) >= 5 else []
@@ -128,6 +154,7 @@ async def company(
             "name": row["name"],
             "cik": row["cik"],
             "watched": row["watched"],
+            "in_universes": universes,
             "last_price": closes[-1] if closes else None,
             "week_change": ((closes[-1] - week_ago) / week_ago * 100)
             if closes and week_ago

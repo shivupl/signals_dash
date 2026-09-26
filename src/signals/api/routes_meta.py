@@ -96,8 +96,16 @@ async def system() -> list[SystemEventOut]:
 
 @router.get("/meta")
 async def meta() -> dict[str, object]:
-    """Vocabulary for the filter bar, so labels live in one place."""
+    """Vocabulary for the filter bar, so labels live in one place.
+
+    ``sp500_captured`` is here so a stale membership snapshot is visible rather
+    than assumed fresh -- the index changes about twenty names a year.
+    """
+    from ..seeding import load_sp500
+
+    _members, captured = load_sp500()
     return {
+        "sp500_captured": captured.isoformat() if captured else None,
         "categories": [{"value": k, "label": v} for k, v in CATEGORY_LABELS.items()],
         "sources": [
             {"value": "edgar_8k", "label": "8-K"},

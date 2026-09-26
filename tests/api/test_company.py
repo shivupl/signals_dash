@@ -232,3 +232,119 @@ class TestEndpoint:
     async def test_pagination(self, client: httpx.AsyncClient) -> None:
         page = (await client.get("/api/company/FCEL?limit=1&offset=1")).json()
         assert len(page["events"]) == 1 and page["total"] == 3
+
+
+@pytest.fixture
+def fake_prices():
+    """A provider that records what it was asked for and never leaves the process."""
+    from datetime import date
+
+    from signals.prices import PriceService
+
+    class FakeProvider:
+        def __init__(self) -> None:
+            self.closes: dict[str, dict[date, Decimal]] = {}
+            self.calls: list[str] = []
+
+        def quote(self, ticker: str) -> Decimal | None:
+            return None
+
+        def daily_closes(
+            self, tickers: list[str] | tuple[str, ...], days: int
+        ) -> dict[str, dict[date, Decimal]]:
+            self.calls.extend(tickers)
+            return {t: self.closes[t] for t in tickers if t in self.closes}
+
+        def next_earnings(self, ticker: str) -> date | None:
+            return None
+
+    provider = FakeProvider()
+    deps.set_prices(PriceService(provider))
+    yield provider
+    deps.set_prices(None)
+
+
+async def _member(pg: asyncpg.Connection, ticker: str, cik: str, universe: str) -> int:
+    company_id = await pg.fetchval(
+        "insert into company (cik, ticker, name, watched) values ($1,$2,$3,true) returning id",
+        cik,
+        ticker,
+        f"{ticker} Inc.",
+    )
+    await pg.execute(
+        "insert into company_alias (company_id, kind, value) values ($1,'ticker',$2)",
+        company_id,
+        ticker,
+    )
+    await pg.execute(
+        "insert into universe_member (company_id, universe) values ($1,$2)", company_id, universe
+    )
+    return company_id
+
+
+@pytest.mark.pg
+class TestOnDemandPrices:
+    """Index names are not on the 15-minute price refresh -- 524 tickers every
+    quarter hour, for charts nobody opened. The first open fills the history."""
+
+    async def test_fetches_history_the_first_time_a_page_is_opened(
+        self, client: httpx.AsyncClient, pg: asyncpg.Connection, fake_prices
+    ) -> None:
+        from datetime import date
+
+        await _member(pg, "NEWCO", "0000000021", "sp500")
+        fake_prices.closes = {"NEWCO": {date(2026, 9, 24): Decimal("10.50")}}
+
+        first = await client.get("/api/company/NEWCO")
+        assert first.status_code == 200
+        assert first.json()["prices"] == [{"d": "2026-09-24", "close": 10.5}]
+        assert fake_prices.calls == ["NEWCO"], "one fetch, for the ticker asked about"
+
+        second = await client.get("/api/company/NEWCO")
+        assert second.json()["prices"] == [{"d": "2026-09-24", "close": 10.5}]
+        assert fake_prices.calls == ["NEWCO"], "cached: the second open fetches nothing"
+
+    async def test_a_core_name_is_never_fetched_on_demand(
+        self, client: httpx.AsyncClient, pg: asyncpg.Connection, fake_prices
+    ) -> None:
+        await _member(pg, "CORECO", "0000000022", "core")
+        response = await client.get("/api/company/CORECO")
+        assert response.status_code == 200
+        assert fake_prices.calls == [], "the worker's price loop already covers core names"
+
+    async def test_a_provider_failure_leaves_the_page_usable(
+        self, client: httpx.AsyncClient, pg: asyncpg.Connection, fake_prices
+    ) -> None:
+        await _member(pg, "SADCO", "0000000023", "sp500")
+        fake_prices.closes = {}
+        response = await client.get("/api/company/SADCO")
+        assert response.status_code == 200
+        assert response.json()["prices"] == []
+
+    async def test_no_provider_configured_is_not_an_error(
+        self, client: httpx.AsyncClient, pg: asyncpg.Connection
+    ) -> None:
+        """The API must still serve a company page with no price provider wired."""
+        await _member(pg, "NOPROV", "0000000025", "sp500")
+        assert (await client.get("/api/company/NOPROV")).status_code == 200
+
+
+@pytest.mark.pg
+class TestMembership:
+    async def test_reports_which_universes_a_company_belongs_to(
+        self, client: httpx.AsyncClient, pg: asyncpg.Connection
+    ) -> None:
+        company_id = await _member(pg, "BOTH", "0000000024", "core")
+        await pg.execute(
+            "insert into universe_member (company_id, universe) values ($1,'sp500')", company_id
+        )
+        body = (await client.get("/api/company/BOTH")).json()
+        assert body["company"]["in_universes"] == ["core", "sp500"]
+
+
+@pytest.mark.pg
+class TestMeta:
+    async def test_reports_the_snapshot_capture_date(self, client: httpx.AsyncClient) -> None:
+        """Staleness has to be visible: membership drifts and nothing else says so."""
+        body = (await client.get("/api/meta")).json()
+        assert body["sp500_captured"] is not None

@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 
 from ..bus.redis_bus import RedisSubscriber
 from ..config import Settings
+from ..prices import PriceService, YFinanceProvider
 from ..store.pg import PgStore
 from . import deps
 from .routes_company import router as company_router
@@ -45,6 +46,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     deps.set_settings(settings)
     store = await _connect_with_retry(settings.database_url)
     deps.set_store(store)
+    # Index names are not on the worker's price refresh, so the first open of one
+    # of their company pages fetches the history itself, once, and caches it.
+    deps.set_prices(PriceService(YFinanceProvider()))
     hub.start(RedisSubscriber(settings.redis_url))
     try:
         yield
@@ -52,6 +56,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await hub.stop()
         await store.close()
         deps.set_store(None)
+        deps.set_prices(None)
 
 
 def create_app() -> FastAPI:
