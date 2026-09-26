@@ -50,6 +50,7 @@ class AdapterRunner:
         clock: Clock,
         calendar: MarketCalendar,
         watched_ciks: frozenset[str] = frozenset(),
+        core_ciks: frozenset[str] = frozenset(),
         watched_tickers: frozenset[str] = frozenset(),
     ) -> None:
         self.adapter = adapter
@@ -60,6 +61,7 @@ class AdapterRunner:
             clock=clock,
             state={},
             watched_ciks=watched_ciks,
+            core_ciks=core_ciks,
             watched_tickers=watched_tickers,
         )
         self._clock = clock

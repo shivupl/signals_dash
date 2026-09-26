@@ -84,7 +84,10 @@ async def run_worker(
     # Loaded once at startup: the Form 4 adapter uses it to decide whether a
     # filing is worth a document fetch, before anything is stored.
     watched_ciks = await store.watched_ciks()
-    log.info("watching %d company CIKs", len(watched_ciks))
+    # The hand-picked names. Reconciliation visits these every sweep and rotates
+    # through the rest of the universe, which keeps one sweep small.
+    core_ciks = await store.universe_ciks("core")
+    log.info("watching %d company CIKs (%d core)", len(watched_ciks), len(core_ciks))
 
     # Pre-filters the halt feed. With --all the set is left empty, which the
     # adapter reads as "no filter".
@@ -99,6 +102,7 @@ async def run_worker(
             clock,
             calendar,
             watched_ciks=watched_ciks,
+            core_ciks=core_ciks,
             watched_tickers=watched_tickers,
         )
         for adapter in adapters

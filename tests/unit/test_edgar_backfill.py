@@ -176,3 +176,55 @@ class TestWatchdogScaling:
     def test_a_half_hourly_sweep_does_not_alarm_on_schedule(self) -> None:
         """It would otherwise trip a thirty-minute alarm every time it ran on time."""
         assert stale_after(1800.0) == 75.0
+
+
+class TestSweepSlicing:
+    """524 companies in one sweep is a ~500-request burst every thirty minutes.
+    Core names are reconciled every sweep; the rest rotate, covering the index
+    every four sweeps -- two hours, far inside the three-day lookback."""
+
+    @staticmethod
+    def _ctx(*, core: bool = True) -> FetchContext:
+        return FetchContext(
+            http=SourceClient(
+                UA,
+                clock=FakeClock(),
+                transport=httpx.MockTransport(lambda r: httpx.Response(200, content=b"{}")),
+            ),
+            clock=FakeClock(),
+            watched_ciks=frozenset(f"{n:010d}" for n in range(1, 13)),
+            core_ciks=frozenset(f"{n:010d}" for n in range(1, 5)) if core else frozenset(),
+            state={},
+        )
+
+    def test_core_is_swept_every_time(self) -> None:
+        adapter = EdgarBackfillAdapter(slices=4)
+        ctx = self._ctx()
+        core = {f"{n:010d}" for n in range(1, 5)}
+        for _ in range(4):
+            assert core <= set(adapter.sweep_ciks(ctx))
+
+    def test_the_rest_is_fully_covered_in_one_rotation(self) -> None:
+        adapter = EdgarBackfillAdapter(slices=4)
+        ctx = self._ctx()
+        seen: set[str] = set()
+        for _ in range(4):
+            seen |= set(adapter.sweep_ciks(ctx))
+        assert seen == ctx.watched_ciks
+
+    def test_one_sweep_is_a_fraction_of_the_universe(self) -> None:
+        adapter = EdgarBackfillAdapter(slices=4)
+        assert len(adapter.sweep_ciks(self._ctx())) == 6, "4 core plus 2 of the 8 others"
+
+    def test_no_core_set_means_sweep_everything(self) -> None:
+        """With --all, or before universes are seeded, behave exactly as before."""
+        adapter = EdgarBackfillAdapter(slices=4)
+        ctx = self._ctx(core=False)
+        assert set(adapter.sweep_ciks(ctx)) == ctx.watched_ciks
+
+    def test_a_cik_watched_but_not_in_any_universe_is_still_swept(self) -> None:
+        """`--all` widens watched_ciks without touching membership; nothing
+        watched may fall out of reconciliation."""
+        adapter = EdgarBackfillAdapter(slices=1)
+        ctx = self._ctx()
+        assert set(adapter.sweep_ciks(ctx)) == ctx.watched_ciks

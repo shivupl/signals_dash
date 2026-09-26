@@ -27,6 +27,11 @@ class FetchContext:
     #: CIKs worth spending a document fetch on. Hydrating every Form 4 on EDGAR
     #: would be thousands of requests a day, and after 16:00 ET a burst of them.
     watched_ciks: frozenset[str] = frozenset()
+    #: The hand-picked watchlist: a subset of watched_ciks. The reconciliation
+    #: sweep visits these every time and rotates through the rest, so widening
+    #: the universe to 500 companies does not turn one sweep into a 500-request
+    #: burst. Empty means "no distinction" -- sweep everything, as before.
+    core_ciks: frozenset[str] = frozenset()
     #: Every share class of every watched company. Empty means "no pre-filter".
     watched_tickers: frozenset[str] = frozenset()
     #: Per-adapter scratch that survives iterations -- high-water marks, pending

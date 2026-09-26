@@ -117,16 +117,33 @@ class EdgarBackfillAdapter:
     name = "edgar_backfill"
     market_hours_only = False
 
-    def __init__(self, *, interval: float = 1800.0) -> None:
+    def __init__(self, *, interval: float = 1800.0, slices: int = 4) -> None:
         self.interval = interval
+        #: How many sweeps one rotation of the non-core universe takes. Four
+        #: half-hourly sweeps is two hours, well inside the 3-day lookback.
+        self.slices = max(1, slices)
         self._form4 = EdgarForm4Adapter()
+
+    def sweep_ciks(self, ctx: FetchContext) -> list[str]:
+        """Core every sweep, the rest one slice at a time.
+
+        Pure and tested on its own, because the sweep's cost is the thing most
+        likely to surprise whoever widens the watchlist next.
+        """
+        if not ctx.core_ciks:
+            return sorted(ctx.watched_ciks)
+        core = sorted(ctx.core_ciks & ctx.watched_ciks)
+        rest = sorted(ctx.watched_ciks - ctx.core_ciks)
+        turn = int(ctx.state.get("slice", 0)) % self.slices
+        ctx.state["slice"] = (turn + 1) % self.slices
+        return core + rest[turn :: self.slices]
 
     async def fetch(self, ctx: FetchContext) -> Sequence[RawEvent]:
         seen: dict[str, bool] = ctx.state.setdefault("seen", {})
         since = ctx.clock.now() - LOOKBACK
         out: list[RawEvent] = []
 
-        for cik in sorted(ctx.watched_ciks):
+        for cik in self.sweep_ciks(ctx):
             try:
                 payload = await ctx.http.get_bytes(
                     SUBMISSIONS_URL.format(cik=cik), priority=Priority.LOW
