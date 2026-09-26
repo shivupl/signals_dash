@@ -1,8 +1,15 @@
-"""Keep daily closes and earnings dates fresh for the watchlist.
+"""Keep daily closes and earnings dates fresh for the hand-picked watchlist.
 
 Not an adapter: it produces no events. It writes the numbers the rail and the
 "since" figure are computed from. Today's row is overwritten through the session
 and its final value is the close.
+
+Scope is the ``core`` universe, not everything watched. Refreshing all ~524
+ingested companies every fifteen minutes -- plus one earnings lookup per ticker
+per day -- would be the heaviest thing in the system, and most of it would be
+spent on charts nobody opened. An index name gets its history the first time its
+company page is opened (see ``api/routes_company.ensure_prices``), and its
+``price_at`` is stamped per event as before.
 """
 
 from __future__ import annotations
@@ -20,11 +27,13 @@ PRICE_HISTORY_DAYS = 90
 REFRESH_OPEN = 15 * 60  # during the session
 REFRESH_CLOSED = 60 * 60  # otherwise
 EARNINGS_EVERY = timedelta(hours=24)
+#: The universe the loop keeps warm. Index names are filled on demand instead.
+REFRESHED_UNIVERSE = "core"
 
 
 async def refresh_prices(store: Store, prices: PriceService) -> int:
     """One pass. Returns the number of closes written."""
-    companies = await store.watched_companies()
+    companies = await store.watched_companies(REFRESHED_UNIVERSE)
     by_ticker = {c.ticker: c for c in companies if c.ticker}
     # Ninety days: enough history for the company page's price line.
     closes = await prices.daily_closes(sorted(by_ticker), days=PRICE_HISTORY_DAYS)
@@ -41,7 +50,7 @@ async def refresh_prices(store: Store, prices: PriceService) -> int:
 
 async def refresh_earnings(store: Store, prices: PriceService) -> int:
     found = 0
-    for company in await store.watched_companies():
+    for company in await store.watched_companies(REFRESHED_UNIVERSE):
         if not company.ticker:
             continue
         when = await prices.next_earnings(company.ticker)

@@ -81,7 +81,11 @@ SET_NEXT_EARNINGS: Final[str] = "update company set next_earnings = $2 where id 
 
 WATCHED_COMPANIES: Final[str] = """
 select id, cik, ticker, name, watched from company
-where watched and ticker is not null order by ticker
+where watched and ticker is not null
+  and ($1::text is null or exists (
+        select 1 from universe_member m
+        where m.company_id = company.id and m.universe = $1))
+order by ticker
 """
 
 # In-place update for a row whose facts legitimately change over time -- an open

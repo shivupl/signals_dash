@@ -80,6 +80,10 @@ async def rig(pg_dsn: str):
         await conn.execute(
             "insert into company_alias (company_id,kind,value) values ($1,'cik','0000000001')", cid
         )
+        # RKLB is a hand-picked name, so it rides the 15-minute refresh.
+        await conn.execute(
+            "insert into universe_member (company_id,universe) values ($1,'core')", cid
+        )
     finally:
         await conn.close()
     store = await PgStore.connect(pg_dsn)
@@ -312,3 +316,56 @@ class TestRefresh:
             max_iterations=3,
         )
         assert len(clock.sleeps) == 3
+
+
+@pytest.mark.pg
+class TestIndexNamesAreNotRefreshed:
+    """The loop covers the hand-picked names only.
+
+    524 tickers every fifteen minutes, plus one earnings call per ticker per day,
+    would be the heaviest thing in the system -- and it would be spent on charts
+    nobody opened. Index names get their history when their page is first opened.
+    """
+
+    async def test_an_index_only_name_is_skipped(self, rig, pg_dsn: str) -> None:
+        store, _cid = rig
+        conn = await asyncpg.connect(pg_dsn)
+        try:
+            sp_id = await conn.fetchval(
+                "insert into company (cik,ticker,name,watched) "
+                "values ('0000000002','MMM','3M CO',true) returning id"
+            )
+            await conn.execute(
+                "insert into universe_member (company_id,universe) values ($1,'sp500')", sp_id
+            )
+        finally:
+            await conn.close()
+
+        provider = FakeProvider()
+        written = await refresh_prices(store, PriceService(provider))
+        assert written == 2, "two closes, for the one core name"
+        rows = await store.company_prices(sp_id, 90)
+        assert rows == [], "the index name was never fetched"
+
+    async def test_earnings_dates_skip_index_only_names(self, rig, pg_dsn: str) -> None:
+        store, _cid = rig
+        conn = await asyncpg.connect(pg_dsn)
+        try:
+            sp_id = await conn.fetchval(
+                "insert into company (cik,ticker,name,watched) "
+                "values ('0000000003','JNJ','JOHNSON & JOHNSON',true) returning id"
+            )
+            await conn.execute(
+                "insert into universe_member (company_id,universe) values ($1,'sp500')", sp_id
+            )
+        finally:
+            await conn.close()
+
+        assert await refresh_earnings(store, PriceService(FakeProvider())) == 1
+        conn = await asyncpg.connect(pg_dsn)
+        try:
+            assert await conn.fetchval(
+                "select next_earnings from company where id = $1", sp_id
+            ) is None
+        finally:
+            await conn.close()

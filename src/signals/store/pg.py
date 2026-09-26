@@ -279,8 +279,8 @@ class PgStore:
     async def set_next_earnings(self, company_id: int, when: date | None) -> None:
         await self._pool.execute(q.SET_NEXT_EARNINGS, company_id, when)
 
-    async def watched_companies(self) -> list[Company]:
-        rows = await self._pool.fetch(q.WATCHED_COMPANIES)
+    async def watched_companies(self, universe: str | None = None) -> list[Company]:
+        rows = await self._pool.fetch(q.WATCHED_COMPANIES, universe)
         return [
             Company(id=r["id"], cik=r["cik"], ticker=r["ticker"], name=r["name"], watched=True)
             for r in rows
