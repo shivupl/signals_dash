@@ -1,22 +1,26 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  fetchActive,
   fetchMeta,
   fetchSystem,
   fetchWatchlist,
+  type ActiveEntry,
   type Meta,
   type SignalEvent,
   type SystemEvent,
   type WatchlistEntry,
 } from "./api/client";
 import { useFeed } from "./api/useFeed";
+import { ActiveRail } from "./components/ActiveRail";
 import { CompanyPage } from "./components/CompanyPage";
 import { FeedList } from "./components/FeedList";
 import { FilterBar } from "./components/FilterBar";
 import { marketDay } from "./components/format";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { StatusStrip } from "./components/StatusStrip";
+import { UniverseSwitch } from "./components/UniverseSwitch";
 import { WatchlistRail } from "./components/WatchlistRail";
-import { useFilters } from "./filters";
+import { universeDefaults, useFilters } from "./filters";
 import { companyFromPath, onInternalClick, useLocation } from "./router";
 
 const EMPTY_META: Meta = { categories: [], sources: [] };
@@ -27,6 +31,7 @@ export default function App() {
   const [filters, setFilters, resetFilters] = useFilters();
 
   const [watchlist, setWatchlist] = useState<WatchlistEntry[]>([]);
+  const [active, setActive] = useState<ActiveEntry[]>([]);
   const [system, setSystem] = useState<SystemEvent[]>([]);
   const [meta, setMeta] = useState<Meta>(EMPTY_META);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -56,11 +61,18 @@ export default function App() {
   }, [refreshSystem]);
 
   // Same threshold as the header, so the two cannot disagree.
-  const railKey = `${filters.minScore}|${filters.sources}|${filters.categories}`;
+  const railKey = `${filters.universe}|${filters.minScore}|${filters.sources}|${filters.categories}`;
   useEffect(() => {
     void fetchWatchlist(filters).then(setWatchlist).catch(() => setWatchlist([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [railKey, events.length]);
+
+  // The index rail ranks by flags, so it also moves when the date range does.
+  useEffect(() => {
+    if (filters.universe !== "sp500") return;
+    void fetchActive(filters).then(setActive).catch(() => setActive([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [railKey, filters.range, filters.since, filters.until, events.length]);
 
   const companies = useMemo(
     () =>
@@ -86,6 +98,10 @@ export default function App() {
              title={live ? "live: flags are pushed" : "polling every 5s"}>
             Signals
           </a>
+          <UniverseSwitch
+            value={filters.universe}
+            onChange={(universe) => setFilters(universeDefaults(universe))}
+          />
           <span className="meta mono">
             {/* Feed-wide counts would be noise on a page about one company. */}
             {!ticker && (
@@ -99,7 +115,10 @@ export default function App() {
                 {routine > 0 && <> · {routine} routine</>} ·{" "}
               </>
             )}
-            <b>{watchlist.length}</b> watched · times ET
+            {/* The rail's own row count, never a hard-coded 500: membership is
+                whatever the snapshot says it is. */}
+            <b>{watchlist.length}</b>{" "}
+            {filters.universe === "sp500" ? "in S&P 500" : "watched"} · times ET
           </span>
           <span className="spacer" />
           <button className="gear" onClick={() => setSettingsOpen(true)} aria-label="Settings" title="Settings">
@@ -137,7 +156,11 @@ export default function App() {
                 fresh={fresh}
                 total={total}
               />
-              <WatchlistRail entries={watchlist} />
+              {filters.universe === "sp500" ? (
+                <ActiveRail entries={active} />
+              ) : (
+                <WatchlistRail entries={watchlist} />
+              )}
             </div>
           </>
         )}

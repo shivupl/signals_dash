@@ -73,6 +73,7 @@ export function CompanyPage({
         </a>
         <span className="co-ticker mono">{company.ticker}</span>
         <span className="co-name">{company.name}</span>
+        {company.in_universes.includes("sp500") && <span className="badge sp">S&P 500</span>}
         <span className="spacer" />
         <div className="co-stats mono">
           <span>

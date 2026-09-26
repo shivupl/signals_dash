@@ -26,23 +26,28 @@ function MultiSelect({
   options,
   selected,
   onChange,
+  /** The selection names what is hidden, not what is shown. The pill has to say
+   *  so: an "Earnings" chip while earnings are being hidden is a lie. */
+  exclude = false,
 }: {
   label: string;
   options: Option[];
   selected: string[];
   onChange: (next: string[]) => void;
+  exclude?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useDismiss(open, () => setOpen(false));
   const toggle = (value: string) =>
     onChange(selected.includes(value) ? selected.filter((v) => v !== value) : [...selected, value]);
 
+  const one = options.find((o) => o.value === selected[0])?.label ?? selected[0];
   const text =
     selected.length === 0
       ? label
       : selected.length === 1
-        ? (options.find((o) => o.value === selected[0])?.label ?? selected[0])
-        : `${label} · ${selected.length}`;
+        ? (exclude ? `no ${one.toLowerCase()}` : one)
+        : `${label} · ${exclude ? "−" : ""}${selected.length}`;
 
   return (
     <div className="ms" ref={ref}>
@@ -51,6 +56,7 @@ function MultiSelect({
       </button>
       {open && (
         <div className="pop" role="listbox" aria-multiselectable>
+          {exclude && <div className="pop-note">checked = hidden</div>}
           {options.map((o) => (
             <label className="pop-row" key={o.value}>
               <input
@@ -208,7 +214,12 @@ export function FilterBar({
         label="Event type"
         options={categories.filter((c) => showSystem || c.value !== "system")}
         selected={filters.categories}
-        onChange={(next) => onChange({ categories: next })}
+        exclude={filters.categoriesExclude}
+        // Clearing the list leaves no exclusion behind: an empty exclude list and
+        // an empty include list must not be two different states.
+        onChange={(next) =>
+          onChange(next.length ? { categories: next } : { categories: [], categoriesExclude: false })
+        }
       />
 
       <label className="slider" title="Display threshold — yours alone, not saved">

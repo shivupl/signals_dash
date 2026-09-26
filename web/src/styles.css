@@ -354,3 +354,23 @@ a.headline:hover { text-decoration: underline; text-decoration-color: var(--ink-
 
 a.rail-row { text-decoration: none; color: inherit; }
 a.rail-row:hover .tk { text-decoration: underline; text-underline-offset: 3px; }
+
+/* The monitor switch: which universe the feed is a view of. */
+.seg.universe { display: inline-flex; margin-left: 12px; }
+.seg.universe button {
+  background: var(--shell); color: var(--ink-mid); border: 1px solid var(--rule);
+  padding: 2px 9px; font: inherit; font-size: 12px; cursor: pointer;
+}
+.seg.universe button:first-child { border-radius: 4px 0 0 4px; }
+.seg.universe button:last-child { border-radius: 0 4px 4px 0; border-left: 0; }
+.seg.universe button.on { background: #26282a; color: var(--ink); }
+.seg.universe button:hover { color: var(--ink); }
+
+.badge.sp {
+  border: 1px solid var(--rule); border-radius: 3px; padding: 1px 5px;
+  font-size: 10px; letter-spacing: 0.04em; color: var(--ink-soft); margin-left: 8px;
+}
+.pop-note {
+  padding: 4px 10px 6px; font-size: 10px; letter-spacing: 0.04em;
+  color: var(--ink-soft); border-bottom: 1px solid var(--rule-soft);
+}

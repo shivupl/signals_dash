@@ -34,6 +34,15 @@ export interface WatchlistEntry {
   next_earnings: string | null;
 }
 
+export interface ActiveEntry {
+  company_id: number;
+  ticker: string | null;
+  name: string;
+  flags: number;
+  top_score: number;
+  last_event_at: string | null;
+}
+
 export interface SystemEvent {
   id: number;
   adapter: string | null;
@@ -79,6 +88,7 @@ export interface CompanyPayload {
     week_change: number | null;
     next_earnings: string | null;
     flags_this_month: number;
+    in_universes: string[];
   };
   events: SignalEvent[];
   total: number;
@@ -122,10 +132,28 @@ export async function fetchFeed(filters: Filters): Promise<FeedPage> {
 
 /** Same threshold as the header, floored at 1, so the rail and header agree. */
 export function fetchWatchlist(filters: Filters): Promise<WatchlistEntry[]> {
-  const q = new URLSearchParams({ min_score: String(Math.max(1, filters.minScore)) });
+  const q = new URLSearchParams({
+    min_score: String(Math.max(1, filters.minScore)),
+    universe: filters.universe,
+  });
   if (filters.sources.length) q.set("source", filters.sources.join(","));
-  if (filters.categories.length) q.set("category", filters.categories.join(","));
+  // An excluded category is not a rail filter: the rail counts what is there.
+  if (filters.categories.length && !filters.categoriesExclude) {
+    q.set("category", filters.categories.join(","));
+  }
   return getJson<WatchlistEntry[]>(`/api/watchlist?${q}`);
+}
+
+/** The index rail. Ranked by flags, because index names carry no refreshed price. */
+export function fetchActive(filters: Filters): Promise<ActiveEntry[]> {
+  const q = new URLSearchParams({
+    universe: filters.universe,
+    min_score: String(Math.max(1, filters.minScore)),
+    limit: "12",
+  });
+  if (filters.range && filters.range !== "custom") q.set("range", filters.range);
+  if (filters.sources.length) q.set("source", filters.sources.join(","));
+  return getJson<ActiveEntry[]>(`/api/active?${q}`);
 }
 
 export const fetchSystem = (): Promise<SystemEvent[]> => getJson<SystemEvent[]>("/api/system");
