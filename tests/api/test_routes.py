@@ -18,7 +18,10 @@ from signals.store.pg import PgStore
 
 pytestmark = pytest.mark.pg
 
-NOW = datetime(2026, 9, 15, 20, 0, tzinfo=UTC)
+# Anchored to the current time, not a fixed date: the rail counts the last seven
+# days, so a hard-coded timestamp made this file pass in September and fail in
+# October. Nothing here asserts an absolute date.
+NOW = datetime.now(tz=UTC) - timedelta(hours=3)
 
 
 async def _seed_events(dsn: str) -> None:
