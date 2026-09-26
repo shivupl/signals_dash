@@ -39,12 +39,31 @@ def cmd_migrate() -> int:
 
 
 def cmd_seed() -> int:
-    from .seeding import load_filers, load_watchlist, seed
+    from datetime import UTC, datetime
 
-    stats = asyncio.run(seed(_dsn(), watchlist=load_watchlist(), filers=load_filers()))
+    from .seeding import (
+        STALE_AFTER_DAYS,
+        load_filers,
+        load_sp500,
+        load_watchlist,
+        seed,
+        snapshot_age_days,
+    )
+
+    members, captured = load_sp500()
+    age = snapshot_age_days(captured, datetime.now(tz=UTC).date())
+    if members and age is not None and age > STALE_AFTER_DAYS:
+        print(
+            f"warning: config/sp500.yml was captured {age} days ago; "
+            "run `make sp500` to refresh index membership",
+            file=sys.stderr,
+        )
+    stats = asyncio.run(
+        seed(_dsn(), watchlist=load_watchlist(), filers=load_filers(), sp500=members)
+    )
     print(
         f"seeded {stats['companies']:,} companies, {stats['aliases']:,} aliases, "
-        f"{stats['watched']} watched"
+        f"{stats['watched']} watched ({stats['core']} core, {stats['sp500']} sp500)"
     )
     return 0
 

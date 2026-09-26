@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -25,10 +26,38 @@ WATCHLIST = ROOT / "config" / "watchlist.yml"
 #: business -- and a fresh clone seeds from this until you write your own.
 WATCHLIST_EXAMPLE = ROOT / "config" / "watchlist.example.yml"
 TICKERS_FIXTURE = ROOT / "tests" / "fixtures" / "edgar" / "company_tickers.json"
+#: The S&P 500 monitor. Committed, refreshed by hand with `make sp500`, and
+#: optional -- a clone without it seeds the hand-picked watchlist alone.
+SP500 = ROOT / "config" / "sp500.yml"
+#: Past this the snapshot is old enough that membership has drifted: the index
+#: changes roughly twenty names a year.
+STALE_AFTER_DAYS = 90
 
 
 def watchlist_path() -> Path:
     return WATCHLIST if WATCHLIST.exists() else WATCHLIST_EXAMPLE
+
+
+def load_sp500(path: Path | None = None) -> tuple[list[dict[str, str]], date | None]:
+    """Index members, and the date the snapshot was captured.
+
+    A missing file is not an error: the S&P monitor is optional.
+    """
+    path = path or SP500
+    if not path.exists():
+        return [], None
+    data = yaml.safe_load(path.read_text()) or {}
+    members = [
+        {"ticker": str(m["ticker"]).strip().upper(), "cik": str(m["cik"]).strip().zfill(10)}
+        for m in data.get("members", [])
+        if m.get("ticker") and m.get("cik")
+    ]
+    captured = data.get("captured")
+    return members, captured if isinstance(captured, date) else None
+
+
+def snapshot_age_days(captured: date | None, today: date) -> int | None:
+    return None if captured is None else (today - captured).days
 
 
 def load_watchlist(path: Path | None = None) -> list[str]:
@@ -62,7 +91,13 @@ def load_filers(path: Path = TICKERS_FIXTURE) -> list[dict[str, Any]]:
     ]
 
 
-async def seed(dsn: str, *, watchlist: list[str], filers: list[dict[str, Any]]) -> dict[str, int]:
+async def seed(
+    dsn: str,
+    *,
+    watchlist: list[str],
+    filers: list[dict[str, Any]],
+    sp500: list[dict[str, str]] | None = None,
+) -> dict[str, int]:
     conn = await asyncpg.connect(dsn)
     try:
         async with conn.transaction():
@@ -106,22 +141,44 @@ async def seed(dsn: str, *, watchlist: list[str], filers: list[dict[str, Any]]) 
                 aliases,
             )
 
-            # Watched is authoritative from the file: dropping a ticker from
-            # watchlist.yml must actually stop watching it.
-            await conn.execute("update company set watched = false where watched")
-            # Match through the alias table so a watchlist naming a secondary
-            # share class (GOOG rather than GOOGL) still marks the company.
-            marked = await conn.fetch(
+            # Membership is authoritative from the files, so dropping a name
+            # really stops watching it. Both universes are rebuilt, then
+            # `watched` -- "ingest this company" -- is derived from them, which
+            # keeps one source of truth instead of two that can disagree.
+            #
+            # Core matches through the alias table, so a watchlist naming a
+            # secondary share class (GOOG rather than GOOGL) still marks the
+            # company. The index matches on CIK: its 503 symbols are 500 filers,
+            # and a ticker match would invent rows no filing can resolve to.
+            core_ids = await conn.fetch(
                 """
-                update company set watched = true
-                where id in (
-                  select company_id from company_alias
-                  where kind = 'ticker' and value = any($1::text[])
-                )
-                returning ticker
+                select distinct company_id as id from company_alias
+                where kind = 'ticker' and value = any($1::text[])
                 """,
                 watchlist,
             )
+            sp_ids = await conn.fetch(
+                "select id from company where cik = any($1::text[])",
+                [m["cik"] for m in (sp500 or [])],
+            )
+            await conn.execute("delete from universe_member")
+            await conn.executemany(
+                "insert into universe_member (company_id, universe) values ($1, $2) "
+                "on conflict do nothing",
+                [(r["id"], "core") for r in core_ids] + [(r["id"], "sp500") for r in sp_ids],
+            )
+            changed = await conn.fetch(
+                """
+                update company set watched = exists (
+                  select 1 from universe_member m where m.company_id = company.id
+                )
+                where watched <> exists (
+                  select 1 from universe_member m where m.company_id = company.id
+                )
+                returning ticker
+                """
+            )
+            watched_total = await conn.fetchval("select count(*) from company where watched")
 
         resolved = await conn.fetch(
             """
@@ -134,6 +191,13 @@ async def seed(dsn: str, *, watchlist: list[str], filers: list[dict[str, Any]]) 
         missing = sorted(set(watchlist) - found)
         if missing:
             print(f"warning: no SEC filer matches {', '.join(missing)}", file=sys.stderr)
-        return {"companies": len(id_by_cik), "aliases": len(aliases), "watched": len(marked)}
+        return {
+            "companies": len(id_by_cik),
+            "aliases": len(aliases),
+            "watched": int(watched_total or 0),
+            "changed": len(changed),
+            "core": len(core_ids),
+            "sp500": len(sp_ids),
+        }
     finally:
         await conn.close()

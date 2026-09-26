@@ -150,3 +150,132 @@ class TestWatchlistFallback:
         from signals import seeding
 
         assert seeding.WATCHLIST_EXAMPLE.exists()
+
+
+class TestUniverses:
+    """Membership is reconciled from the files, never accumulated."""
+
+    async def test_watchlist_members_land_in_core(self, pg_dsn: str, pg) -> None:
+        await seed(pg_dsn, watchlist=["AAPL"], filers=FILERS)
+        rows = await pg.fetch(
+            "select c.ticker from universe_member m join company c on c.id = m.company_id "
+            "where m.universe = 'core'"
+        )
+        assert [r["ticker"] for r in rows] == ["AAPL"]
+
+    async def test_sp500_members_are_marked_and_watched(self, pg_dsn: str, pg) -> None:
+        await seed(
+            pg_dsn,
+            watchlist=["AAPL"],
+            filers=FILERS,
+            sp500=[{"ticker": "GOOGL", "cik": "0001652044"}],
+        )
+        watched = await pg.fetch("select ticker from company where watched order by ticker")
+        assert {r["ticker"] for r in watched} == {"AAPL", "GOOGL"}
+        universes = await pg.fetch(
+            "select m.universe from universe_member m join company c on c.id = m.company_id "
+            "where c.cik = '0001652044'"
+        )
+        assert [r["universe"] for r in universes] == ["sp500"]
+
+    async def test_dual_share_classes_collapse_to_one_member(self, pg_dsn: str, pg) -> None:
+        """503 index tickers are 500 filers: GOOGL and GOOG are one company, and a
+        ticker match would invent a row no filing can ever resolve to."""
+        await seed(
+            pg_dsn,
+            watchlist=[],
+            filers=FILERS,
+            sp500=[
+                {"ticker": "GOOGL", "cik": "0001652044"},
+                {"ticker": "GOOG", "cik": "0001652044"},
+            ],
+        )
+        count = await pg.fetchval("select count(*) from universe_member where universe = 'sp500'")
+        assert count == 1
+
+    async def test_dropping_out_of_the_index_stops_ingest(self, pg_dsn: str, pg) -> None:
+        await seed(
+            pg_dsn, watchlist=[], filers=FILERS, sp500=[{"ticker": "GOOGL", "cik": "0001652044"}]
+        )
+        await seed(pg_dsn, watchlist=[], filers=FILERS, sp500=[])
+        assert await pg.fetchval("select count(*) from universe_member") == 0
+        assert await pg.fetchval("select count(*) from company where watched") == 0
+
+    async def test_a_company_in_both_keeps_core_when_the_index_drops_it(
+        self, pg_dsn: str, pg
+    ) -> None:
+        await seed(
+            pg_dsn,
+            watchlist=["AAPL"],
+            filers=FILERS,
+            sp500=[{"ticker": "AAPL", "cik": "0000320193"}],
+        )
+        await seed(pg_dsn, watchlist=["AAPL"], filers=FILERS, sp500=[])
+        universes = await pg.fetch(
+            "select m.universe from universe_member m join company c on c.id = m.company_id "
+            "where c.ticker = 'AAPL'"
+        )
+        assert [r["universe"] for r in universes] == ["core"]
+        assert await pg.fetchval("select watched from company where ticker = 'AAPL'") is True
+
+    async def test_reports_both_universe_sizes(self, pg_dsn: str, pg) -> None:
+        stats = await seed(
+            pg_dsn,
+            watchlist=["AAPL"],
+            filers=FILERS,
+            sp500=[{"ticker": "GOOGL", "cik": "0001652044"}],
+        )
+        assert stats["core"] == 1
+        assert stats["sp500"] == 1
+        assert stats["watched"] == 2
+
+
+class TestSnapshotAge:
+    """A stale snapshot is the quiet failure here: membership drifts and nothing
+    says so."""
+
+    def test_reports_age_in_days(self) -> None:
+        from datetime import date
+
+        from signals.seeding import snapshot_age_days
+
+        assert snapshot_age_days(date(2026, 6, 27), date(2026, 9, 25)) == 90
+
+    def test_is_none_when_the_file_carries_no_date(self) -> None:
+        from datetime import date
+
+        from signals.seeding import snapshot_age_days
+
+        assert snapshot_age_days(None, date(2026, 9, 25)) is None
+
+
+class TestLoadSp500:
+    def test_missing_file_is_not_an_error(self, tmp_path) -> None:
+        """A fresh clone must seed without the index file."""
+        from signals.seeding import load_sp500
+
+        members, captured = load_sp500(tmp_path / "absent.yml")
+        assert members == []
+        assert captured is None
+
+    def test_reads_members_and_the_capture_date(self, tmp_path) -> None:
+        from datetime import date
+
+        from signals.seeding import load_sp500
+
+        path = tmp_path / "sp500.yml"
+        path.write_text(
+            'captured: 2026-09-25\nmembers:\n  - {ticker: mmm, cik: "66740"}\n'
+        )
+        members, captured = load_sp500(path)
+        assert members == [{"ticker": "MMM", "cik": "0000066740"}]
+        assert captured == date(2026, 9, 25)
+
+    def test_the_committed_snapshot_is_five_hundred_filers(self) -> None:
+        """Guards the parse, the file, and the dual-class collapse in one line."""
+        from signals.seeding import load_sp500
+
+        members, captured = load_sp500()
+        assert len(members) == 503
+        assert len({m["cik"] for m in members}) == 500
+        assert captured is not None

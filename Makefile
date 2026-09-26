@@ -1,4 +1,4 @@
-.PHONY: awake help up down logs test test-unit test-pg lint fmt typecheck layers migrate seed replay fixtures web psql redis shell
+.PHONY: awake help up down logs test test-unit test-pg lint fmt typecheck layers migrate seed replay fixtures web psql redis shell sp500
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-12s %s\n",$$1,$$2}'
@@ -36,6 +36,8 @@ web:        ## Build the React UI into web/dist
 	cd web && npm install && npm run build
 fixtures:   ## Re-capture test fixtures from the live network (run by hand)
 	docker compose run --rm worker python scripts/capture_fixtures.py --allow-network
+sp500:      ## Refresh config/sp500.yml from the published index list (by hand)
+	docker compose run --rm worker python scripts/refresh_sp500.py --allow-network
 
 psql:       ## Open a psql shell
 	docker compose exec postgres psql -U postgres -d signals
