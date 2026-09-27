@@ -130,6 +130,25 @@ where e.company_id = $1
   and e.occurred_at >= $2
 """
 
+# Distinct insiders who have noticed a sale at one company inside the window. By
+# CIK for the same reason as the buy side: filing agents spell one person's name
+# several ways, and a name match would invent a crowd out of one seller.
+# $3 is the notice being scored, counted alongside the stored ones. The buy side
+# can count only what is stored because promotion reaches back afterwards and
+# fixes the arithmetic; notices are never rescored, so the third notice has to see
+# itself in the crowd at the moment it is stored or the cluster never appears.
+DISTINCT_144_SELLERS: Final[str] = """
+select count(distinct cik) as sellers from (
+  select cik
+  from event e, jsonb_array_elements_text(e.payload -> 'seller_ciks') as cik
+  where e.company_id = $1
+    and e.source = 'edgar_144'
+    and e.occurred_at >= $2
+  union
+  select unnest($3::text[])
+) as sellers
+"""
+
 # Candidates for retroactive promotion. The score_parts guard is what makes
 # re-running promotion free rather than merely harmless.
 EVENTS_MISSING_CLUSTER_BONUS: Final[str] = """

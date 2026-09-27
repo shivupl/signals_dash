@@ -1,0 +1,242 @@
+<SEC-DOCUMENT>0001950047-26-009828.txt : 20260925
+<SEC-HEADER>0001950047-26-009828.hdr.sgml : 20260925
+<ACCEPTANCE-DATETIME>20260925163517
+ACCESSION NUMBER:		0001950047-26-009828
+CONFORMED SUBMISSION TYPE:	144
+PUBLIC DOCUMENT COUNT:		1
+FILED AS OF DATE:		20260925
+DATE AS OF CHANGE:		20260925
+
+SUBJECT COMPANY:	
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			Cerebras Systems Inc.
+		CENTRAL INDEX KEY:			0002021728
+		STANDARD INDUSTRIAL CLASSIFICATION:	SEMICONDUCTORS & RELATED DEVICES [3674]
+		ORGANIZATION NAME:           	04 Manufacturing
+		EIN:				000000000
+		STATE OF INCORPORATION:			DE
+		FISCAL YEAR END:			1231
+
+	FILING VALUES:
+		FORM TYPE:		144
+		SEC ACT:		1933 Act
+		SEC FILE NUMBER:	001-43284
+		FILM NUMBER:		261410851
+
+	BUSINESS ADDRESS:	
+		STREET 1:		1237 E. ARQUES AVE.
+		CITY:			SUNNYVALE
+		STATE:			CA
+		ZIP:			94085
+		BUSINESS PHONE:		(650) 933-4890
+
+	MAIL ADDRESS:	
+		STREET 1:		1237 E. ARQUES AVE.
+		CITY:			SUNNYVALE
+		STATE:			CA
+		ZIP:			94085
+
+REPORTING-OWNER:	
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			Lie Sean
+		CENTRAL INDEX KEY:			0002132472
+		ORGANIZATION NAME:           	
+
+	FILING VALUES:
+		FORM TYPE:		144
+
+	MAIL ADDRESS:	
+		STREET 1:		C/O CEREBRAS SYSTEMS INC.
+		STREET 2:		1237 E. ARQUES AVENUE
+		CITY:			SUNNYVALE
+		STATE:			CA
+		ZIP:			94085
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>144
+<SEQUENCE>1
+<FILENAME>primary_doc.xml
+<TEXT>
+<XML>
+<?xml version="1.0" encoding="UTF-8"?><edgarSubmission xmlns="http://www.sec.gov/edgar/ownership" xmlns:ns2="http://www.sec.gov/edgar/common">
+    <headerData>
+        <submissionType>144</submissionType>
+        <filerInfo>
+            <filer>
+                <filerCredentials>
+                    <cik>0002132472</cik>
+                    <ccc>XXXXXXXX</ccc>
+                </filerCredentials>
+            </filer>
+            <liveTestFlag>LIVE</liveTestFlag>
+
+
+
+        </filerInfo>
+    </headerData>
+    <formData>
+        <issuerInfo>
+            <issuerCik>0002021728</issuerCik>
+            <issuerName>Cerebras Systems Inc.</issuerName>
+            <secFileNumber>001-43284</secFileNumber>
+            <issuerAddress>
+                <ns2:street1>1237 E. Arques Avenue</ns2:street1>
+                <ns2:city>Sunnyvale</ns2:city>
+                <ns2:stateOrCountry>CA</ns2:stateOrCountry>
+                <ns2:zipCode>94085</ns2:zipCode>
+            </issuerAddress>
+            <issuerContactPhone>650-933-4980</issuerContactPhone>
+            <nameOfPersonForWhoseAccountTheSecuritiesAreToBeSold>SEAN LIE</nameOfPersonForWhoseAccountTheSecuritiesAreToBeSold>
+            <relationshipsToIssuer>
+                <relationshipToIssuer>Officer</relationshipToIssuer>
+            </relationshipsToIssuer>
+        </issuerInfo>
+        <securitiesInformation>
+            <securitiesClassTitle>Common</securitiesClassTitle>
+            <brokerOrMarketmakerDetails>
+                <name>Morgan Stanley Smith Barney LLC Executive Financial Services</name>
+                <address>
+                    <ns2:street1>1 New York Plaza</ns2:street1>
+                    <ns2:street2>8th Floor</ns2:street2>
+                    <ns2:city>New York</ns2:city>
+                    <ns2:stateOrCountry>NY</ns2:stateOrCountry>
+                    <ns2:zipCode>10004</ns2:zipCode>
+                </address>
+            </brokerOrMarketmakerDetails>
+            <noOfUnitsSold>120000</noOfUnitsSold>
+            <aggregateMarketValue>24769200.00</aggregateMarketValue>
+            <noOfUnitsOutstanding>112247109</noOfUnitsOutstanding>
+            <approxSaleDate>09/25/2026</approxSaleDate>
+            <securitiesExchangeName>NASDAQ</securitiesExchangeName>
+        </securitiesInformation>
+        <securitiesToBeSold>
+            <securitiesClassTitle>Common</securitiesClassTitle>
+            <acquiredDate>09/25/2026</acquiredDate>
+            <natureOfAcquisitionTransaction>Exercise of Stock Options</natureOfAcquisitionTransaction>
+            <nameOfPersonfromWhomAcquired>Issuer</nameOfPersonfromWhomAcquired>
+            <isGiftTransaction>N</isGiftTransaction>
+            <amountOfSecuritiesAcquired>120000</amountOfSecuritiesAcquired>
+            <paymentDate>09/25/2026</paymentDate>
+            <natureOfPayment>Cash</natureOfPayment>
+        </securitiesToBeSold>
+        <nothingToReportFlagOnSecuritiesSoldInPast3Months>N</nothingToReportFlagOnSecuritiesSoldInPast3Months>
+        <securitiesSoldInPast3Months>
+            <sellerDetails>
+                <name>Grounded Love Fund</name>
+                <address>
+                    <ns2:street1>1237 E. Arques Avenue</ns2:street1>
+                    <ns2:city>Sunnyvale</ns2:city>
+                    <ns2:stateOrCountry>CA</ns2:stateOrCountry>
+                    <ns2:zipCode>94085</ns2:zipCode>
+                </address>
+            </sellerDetails>
+            <securitiesClassTitle>Common</securitiesClassTitle>
+            <saleDate>09/08/2026</saleDate>
+            <amountOfSecuritiesSold>16038</amountOfSecuritiesSold>
+            <grossProceeds>3278844.00</grossProceeds>
+        </securitiesSoldInPast3Months>
+        <securitiesSoldInPast3Months>
+            <sellerDetails>
+                <name>10b5-1 Sales for SEAN LIE</name>
+                <address>
+                    <ns2:street1>1237 E. Arques Avenue</ns2:street1>
+                    <ns2:city>Sunnyvale</ns2:city>
+                    <ns2:stateOrCountry>CA</ns2:stateOrCountry>
+                    <ns2:zipCode>94085</ns2:zipCode>
+                </address>
+            </sellerDetails>
+            <securitiesClassTitle>Common</securitiesClassTitle>
+            <saleDate>09/04/2026</saleDate>
+            <amountOfSecuritiesSold>53460</amountOfSecuritiesSold>
+            <grossProceeds>11235126.87</grossProceeds>
+        </securitiesSoldInPast3Months>
+        <securitiesSoldInPast3Months>
+            <sellerDetails>
+                <name>Grounded Love Fund</name>
+                <address>
+                    <ns2:street1>1237 E. Arques Avenue</ns2:street1>
+                    <ns2:city>Sunnyvale</ns2:city>
+                    <ns2:stateOrCountry>CA</ns2:stateOrCountry>
+                    <ns2:zipCode>94085</ns2:zipCode>
+                </address>
+            </sellerDetails>
+            <securitiesClassTitle>Common</securitiesClassTitle>
+            <saleDate>08/24/2026</saleDate>
+            <amountOfSecuritiesSold>4887</amountOfSecuritiesSold>
+            <grossProceeds>913986.29</grossProceeds>
+        </securitiesSoldInPast3Months>
+        <securitiesSoldInPast3Months>
+            <sellerDetails>
+                <name>10b5-1 Sales for SEAN LIE</name>
+                <address>
+                    <ns2:street1>1237 E. Arques Avenue</ns2:street1>
+                    <ns2:city>Sunnyvale</ns2:city>
+                    <ns2:stateOrCountry>CA</ns2:stateOrCountry>
+                    <ns2:zipCode>94085</ns2:zipCode>
+                </address>
+            </sellerDetails>
+            <securitiesClassTitle>Common</securitiesClassTitle>
+            <saleDate>08/21/2026</saleDate>
+            <amountOfSecuritiesSold>16293</amountOfSecuritiesSold>
+            <grossProceeds>3421670.12</grossProceeds>
+        </securitiesSoldInPast3Months>
+        <securitiesSoldInPast3Months>
+            <sellerDetails>
+                <name>Grounded Love Fund</name>
+                <address>
+                    <ns2:street1>1237 E. Arques Avenue</ns2:street1>
+                    <ns2:city>Sunnyvale</ns2:city>
+                    <ns2:stateOrCountry>CA</ns2:stateOrCountry>
+                    <ns2:zipCode>94085</ns2:zipCode>
+                </address>
+            </sellerDetails>
+            <securitiesClassTitle>Common</securitiesClassTitle>
+            <saleDate>08/21/2026</saleDate>
+            <amountOfSecuritiesSold>213074</amountOfSecuritiesSold>
+            <grossProceeds>42428338.94</grossProceeds>
+        </securitiesSoldInPast3Months>
+        <securitiesSoldInPast3Months>
+            <sellerDetails>
+                <name>10b5-1 Sales for SEAN LIE</name>
+                <address>
+                    <ns2:street1>1237 E. Arques Avenue</ns2:street1>
+                    <ns2:city>Sunnyvale</ns2:city>
+                    <ns2:stateOrCountry>CA</ns2:stateOrCountry>
+                    <ns2:zipCode>94085</ns2:zipCode>
+                </address>
+            </sellerDetails>
+            <securitiesClassTitle>Common</securitiesClassTitle>
+            <saleDate>08/20/2026</saleDate>
+            <amountOfSecuritiesSold>710247</amountOfSecuritiesSold>
+            <grossProceeds>147629203.38</grossProceeds>
+        </securitiesSoldInPast3Months>
+        <securitiesSoldInPast3Months>
+            <sellerDetails>
+                <name>SEAN LIE</name>
+                <address>
+                    <ns2:street1>1237 E. Arques Avenue</ns2:street1>
+                    <ns2:city>Sunnyvale</ns2:city>
+                    <ns2:stateOrCountry>CA</ns2:stateOrCountry>
+                    <ns2:zipCode>94085</ns2:zipCode>
+                </address>
+            </sellerDetails>
+            <securitiesClassTitle>Common</securitiesClassTitle>
+            <saleDate>08/18/2026</saleDate>
+            <amountOfSecuritiesSold>21257</amountOfSecuritiesSold>
+            <grossProceeds>4720625.00</grossProceeds>
+        </securitiesSoldInPast3Months>
+        <noticeSignature>
+            <noticeDate>09/25/2026</noticeDate>
+            <planAdoptionDates>
+                <planAdoptionDate>05/20/2026</planAdoptionDate>
+            </planAdoptionDates>
+            <signature>/s/ Sean Lie</signature>
+        </noticeSignature>
+    </formData>
+</edgarSubmission>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

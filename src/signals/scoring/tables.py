@@ -76,6 +76,26 @@ FORM4_CLUSTER_WINDOW_DAYS: Final[int] = 30
 FORM4_LARGE_DOLLAR_THRESHOLD: Final[float] = 1_000_000.0
 FORM4_LARGE_STAKE_FRACTION: Final[float] = 0.05
 
+
+# --- Form 144 ---------------------------------------------------------------
+#
+# A notice of intent to sell, filed before the sale. Quiet by design: roughly
+# eighteen arrive a day across both monitors, and most are a scheduled trickle out
+# of a vested position. Base 20 keeps those on the record and under both
+# thresholds (30 for the watchlist, 50 for the index); what earns a flag is size,
+# concentration on a small float, or a crowd heading for the exit.
+FORM144_BASE: Final[int] = 20
+FORM144_INSIDER: Final[int] = 10          # officer, director or 10% holder
+FORM144_LARGE_DOLLAR: Final[int] = 15     # over $10M
+FORM144_CONCENTRATED: Final[int] = 10     # over 1% of shares outstanding
+FORM144_CLUSTER: Final[int] = 25          # 3+ distinct sellers inside 30 days
+FORM144_PLAN_10B5_1: Final[int] = -10     # adopted months ago; calendar, not news
+
+FORM144_LARGE_DOLLAR_THRESHOLD: Final[float] = 10_000_000.0
+FORM144_CONCENTRATED_PERCENT: Final[float] = 1.0
+FORM144_CLUSTER_MIN_SELLERS: Final[int] = 3
+FORM144_CLUSTER_WINDOW_DAYS: Final[int] = 30
+
 SENIOR_OFFICER_TITLES: Final[tuple[str, ...]] = (
     "chief executive",
     "ceo",

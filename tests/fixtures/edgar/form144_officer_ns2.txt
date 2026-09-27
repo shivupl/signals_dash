@@ -1,0 +1,144 @@
+<SEC-DOCUMENT>0001958244-26-000624.txt : 20260925
+<SEC-HEADER>0001958244-26-000624.hdr.sgml : 20260925
+<ACCEPTANCE-DATETIME>20260925191945
+ACCESSION NUMBER:		0001958244-26-000624
+CONFORMED SUBMISSION TYPE:	144
+PUBLIC DOCUMENT COUNT:		1
+FILED AS OF DATE:		20260925
+DATE AS OF CHANGE:		20260925
+
+SUBJECT COMPANY:	
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			Rubrik, Inc.
+		CENTRAL INDEX KEY:			0001943896
+		STANDARD INDUSTRIAL CLASSIFICATION:	SERVICES-PREPACKAGED SOFTWARE [7372]
+		ORGANIZATION NAME:           	06 Technology
+		EIN:				464560494
+		STATE OF INCORPORATION:			DE
+		FISCAL YEAR END:			0131
+
+	FILING VALUES:
+		FORM TYPE:		144
+		SEC ACT:		1933 Act
+		SEC FILE NUMBER:	001-42028
+		FILM NUMBER:		261411602
+
+	BUSINESS ADDRESS:	
+		STREET 1:		3495 DEER CREEK ROAD
+		CITY:			PALO ALTO
+		STATE:			CA
+		ZIP:			94304
+		BUSINESS PHONE:		8444782745
+
+	MAIL ADDRESS:	
+		STREET 1:		3495 DEER CREEK ROAD
+		CITY:			PALO ALTO
+		STATE:			CA
+		ZIP:			94304
+
+REPORTING-OWNER:	
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			Sinha Bipul
+		CENTRAL INDEX KEY:			0001685768
+		ORGANIZATION NAME:           	
+
+	FILING VALUES:
+		FORM TYPE:		144
+
+	MAIL ADDRESS:	
+		STREET 1:		3495 DEER CREEK ROAD
+		CITY:			PALO ALTO
+		STATE:			CA
+		ZIP:			94304
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>144
+<SEQUENCE>1
+<FILENAME>primary_doc.xml
+<TEXT>
+<XML>
+<?xml version="1.0" encoding="UTF-8"?><ns2:edgarSubmission xmlns:com="http://www.sec.gov/edgar/common" xmlns:ns2="http://www.sec.gov/edgar/ownership">
+    <ns2:headerData>
+        <ns2:submissionType>144</ns2:submissionType>
+        <ns2:filerInfo>
+            <ns2:filer>
+                <ns2:filerCredentials>
+                    <ns2:cik>0001685768</ns2:cik>
+                    <ns2:ccc>XXXXXXXX</ns2:ccc>
+                </ns2:filerCredentials>
+            </ns2:filer>
+            <ns2:liveTestFlag>LIVE</ns2:liveTestFlag>
+
+
+
+        </ns2:filerInfo>
+    </ns2:headerData>
+    <ns2:formData>
+        <ns2:issuerInfo>
+            <ns2:issuerCik>0001943896</ns2:issuerCik>
+            <ns2:issuerName>Rubrik, Inc.</ns2:issuerName>
+            <ns2:secFileNumber>001-42028</ns2:secFileNumber>
+            <ns2:issuerAddress>
+                <com:street1>3495 Deer Creek Road</com:street1>
+                <com:city>Palo Alto</com:city>
+                <com:stateOrCountry>CA</com:stateOrCountry>
+                <com:zipCode>94304</com:zipCode>
+            </ns2:issuerAddress>
+            <ns2:issuerContactPhone>1-844-478-2745</ns2:issuerContactPhone>
+            <ns2:nameOfPersonForWhoseAccountTheSecuritiesAreToBeSold>Bipul Sinha</ns2:nameOfPersonForWhoseAccountTheSecuritiesAreToBeSold>
+            <ns2:relationshipsToIssuer>
+                <ns2:relationshipToIssuer>Officer</ns2:relationshipToIssuer>
+            </ns2:relationshipsToIssuer>
+        </ns2:issuerInfo>
+        <ns2:securitiesInformation>
+            <ns2:securitiesClassTitle>Class A Common</ns2:securitiesClassTitle>
+            <ns2:brokerOrMarketmakerDetails>
+                <ns2:name>Goldman Sachs &amp; Co. LLC</ns2:name>
+                <ns2:address>
+                    <com:street1>200 West Street</com:street1>
+                    <com:city>New York</com:city>
+                    <com:stateOrCountry>NY</com:stateOrCountry>
+                    <com:zipCode>10282</com:zipCode>
+                </ns2:address>
+            </ns2:brokerOrMarketmakerDetails>
+            <ns2:noOfUnitsSold>500000</ns2:noOfUnitsSold>
+            <ns2:aggregateMarketValue>56900000</ns2:aggregateMarketValue>
+            <ns2:noOfUnitsOutstanding>167367143</ns2:noOfUnitsOutstanding>
+            <ns2:approxSaleDate>09/25/2026</ns2:approxSaleDate>
+            <ns2:securitiesExchangeName>NYSE</ns2:securitiesExchangeName>
+        </ns2:securitiesInformation>
+        <ns2:securitiesToBeSold>
+            <ns2:securitiesClassTitle>Class A Common</ns2:securitiesClassTitle>
+            <ns2:acquiredDate>02/28/2022</ns2:acquiredDate>
+            <ns2:natureOfAcquisitionTransaction>Acquired Class B common shares from Issuer in private transaction; Class B common shares were converted to Class A common shares, and subsequently contributed to SBSP EQUITY 1 LLC</ns2:natureOfAcquisitionTransaction>
+            <ns2:nameOfPersonfromWhomAcquired>The Issuer</ns2:nameOfPersonfromWhomAcquired>
+            <ns2:isGiftTransaction>N</ns2:isGiftTransaction>
+            <ns2:amountOfSecuritiesAcquired>30269</ns2:amountOfSecuritiesAcquired>
+            <ns2:paymentDate>02/28/2022</ns2:paymentDate>
+            <ns2:natureOfPayment>None</ns2:natureOfPayment>
+        </ns2:securitiesToBeSold>
+        <ns2:securitiesToBeSold>
+            <ns2:securitiesClassTitle>Class A Common</ns2:securitiesClassTitle>
+            <ns2:acquiredDate>02/17/2021</ns2:acquiredDate>
+            <ns2:natureOfAcquisitionTransaction>Acquired Class B common shares from Issuer in private transaction; Class B common shares were converted to Class A common shares, and subsequently contributed to SBSP EQUITY 1 LLC</ns2:natureOfAcquisitionTransaction>
+            <ns2:nameOfPersonfromWhomAcquired>The Issuer</ns2:nameOfPersonfromWhomAcquired>
+            <ns2:isGiftTransaction>N</ns2:isGiftTransaction>
+            <ns2:amountOfSecuritiesAcquired>469731</ns2:amountOfSecuritiesAcquired>
+            <ns2:paymentDate>02/17/2021</ns2:paymentDate>
+            <ns2:natureOfPayment>None</ns2:natureOfPayment>
+        </ns2:securitiesToBeSold>
+        <ns2:nothingToReportFlagOnSecuritiesSoldInPast3Months>Y</ns2:nothingToReportFlagOnSecuritiesSoldInPast3Months>
+        <ns2:remarks>In accordance with the procedures described in the Commission's interpretive letter to Goldman, Sachs &amp; Co. dated 12/20/99, the shares of Class A Common Stock noticed in Section 3(c) of this Form 144 are subject to a pre-paid forward sale contract between an entity of which Mr. Sinha is the sole equity member and the broker named in Section 3(b). The contract provides for an up-front cash payment to the entity based upon the market price of the shares. Upon expiration, the entity will be obligated to deliver a specified number of shares based on the then-current market price at settlement and the agreed forward floor and cap prices. The entity has pledged 500k shares of Mr. Sinha's Class A Common Stock to secure the entity's obligations under the contract. Subject to certain conditions, the entity may elect to cash settle the contract and retain ownership of the pledged shares. Any hedging activity in connection with the contract will be conducted by the broker named in Section 3(b).</ns2:remarks>
+        <ns2:noticeSignature>
+            <ns2:noticeDate>09/25/2026</ns2:noticeDate>
+            <ns2:planAdoptionDates/>
+            <ns2:signature>Goldman Sachs &amp; Co. LLC on behalf of Bipul Sinha</ns2:signature>
+        </ns2:noticeSignature>
+    </ns2:formData>
+</ns2:edgarSubmission>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

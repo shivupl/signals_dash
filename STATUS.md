@@ -318,3 +318,45 @@ were being *hidden*. It now reads "no earnings".
 **First live signals:** a Berkshire Hathaway open-market buy in Lennar (70) and a
 delisting notice for PSKY (85) -- both index names the old 40-name watchlist could
 never have surfaced.
+
+## Form 144 (2026-09-26)
+
+Advance notice of insider selling: a 144 is filed *before* the sale, where a Form
+4 reports it afterwards. New source `edgar_144`, new category "Planned sale (144)"
+kept apart from `insider_sell` so intent and receipt can be read separately.
+
+**Measured first.** 3-10 notices a day for the 40, 8-21 for the index, so about
+eighteen a day combined -- enough that the calibration decides whether this is
+signal or noise. Base 20 keeps a routine scheduled sale under both thresholds;
++15 over $10M, +10 over 1% of shares outstanding, +10 for an officer/director/10%
+holder, -10 for a 10b5-1 plan, +25 for three sellers inside 30 days. The ceiling
+is 80, below a delisting (85) -- an intention should not outrank an event.
+
+**Two traps found in live data, both silent:**
+
+- The XML's **namespace prefix belongs to the filing agent**, not the form: one
+  day's filings carried `ns2:`, `own:` and no prefix at all. A parser that
+  hard-codes one reads nothing and reports it as an empty notice. Namespaces are
+  stripped before any lookup, and the three styles are each a fixture.
+- **"Former Officer" contains "Officer".** Relationships seen include `Officer`,
+  `10% Stockholder`, `Affiliate`, `Former Officer` and `Member of immediate family
+  of any of the foregoing`. A former officer or a relative selling says much less,
+  so those are excluded explicitly -- the same shape of bug as matching "Vice
+  President" when looking for a president.
+
+Also: `planAdoptionDates` comes absent, present-but-empty, or dated. Only a dated
+plan is a plan; treating the element's presence as proof would quietly take 10
+points off every notice that has an empty one.
+
+**The company is the `(Subject)` entry**, not `(Issuer)` -- `Role.SUBJECT` already
+existed for 13D/G. A `(Reporting)` CIK belongs to the person selling, who will
+never be on a watchlist, so resolving from it would drop every notice.
+
+**Asymmetry with Form 4, on purpose:** there is no retroactive promotion for
+notices. A 144 already scores on its own merits, so the cluster count includes the
+notice being scored and earlier notices keep the scores they were given.
+Generalising the promoter to a second source is more than this earns.
+
+Verified locally by driving the real adapter over the captured fixtures: Rubrik's
+CEO noticing $56.9M scored 45, Cerebras' $24.8M scored 35 because it is plan-based,
+and a small plan sale and a family trust both scored 20.

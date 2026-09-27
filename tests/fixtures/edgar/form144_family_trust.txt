@@ -1,0 +1,283 @@
+<SEC-DOCUMENT>0001969223-26-001041.txt : 20260925
+<SEC-HEADER>0001969223-26-001041.hdr.sgml : 20260925
+<ACCEPTANCE-DATETIME>20260925164210
+ACCESSION NUMBER:		0001969223-26-001041
+CONFORMED SUBMISSION TYPE:	144
+PUBLIC DOCUMENT COUNT:		1
+FILED AS OF DATE:		20260925
+DATE AS OF CHANGE:		20260925
+
+SUBJECT COMPANY:	
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			CREDIT ACCEPTANCE CORP
+		CENTRAL INDEX KEY:			0000885550
+		STANDARD INDUSTRIAL CLASSIFICATION:	PERSONAL CREDIT INSTITUTIONS [6141]
+		ORGANIZATION NAME:           	02 Finance
+		EIN:				381999511
+		STATE OF INCORPORATION:			MI
+		FISCAL YEAR END:			1231
+
+	FILING VALUES:
+		FORM TYPE:		144
+		SEC ACT:		1933 Act
+		SEC FILE NUMBER:	000-20202
+		FILM NUMBER:		261410978
+
+	BUSINESS ADDRESS:	
+		STREET 1:		25505 WEST TWELVE MILE ROAD
+		CITY:			SOUTHFIELD
+		STATE:			MI
+		ZIP:			48034-8334
+		BUSINESS PHONE:		2483532700
+
+	MAIL ADDRESS:	
+		STREET 1:		25505 WEST TWELVE MILE ROAD
+		CITY:			SOUTHFIELD
+		STATE:			MI
+		ZIP:			48034-8334
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	CREDIT ACCEPTANCE CORPORATION
+		DATE OF NAME CHANGE:	19930328
+
+REPORTING-OWNER:	
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			Watson Todd Roger
+		CENTRAL INDEX KEY:			0002137517
+		ORGANIZATION NAME:           	
+
+	FILING VALUES:
+		FORM TYPE:		144
+
+	MAIL ADDRESS:	
+		STREET 1:		C/O UBS FINANCIAL SERVICES INC.
+		STREET 2:		1000 HARBOR BLVD, 3RD FLOOR
+		CITY:			WEEHAWKEN
+		STATE:			NJ
+		ZIP:			07086
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>144
+<SEQUENCE>1
+<FILENAME>primary_doc.xml
+<TEXT>
+<XML>
+<?xml version="1.0" encoding="UTF-8"?><edgarSubmission xmlns="http://www.sec.gov/edgar/ownership" xmlns:com="http://www.sec.gov/edgar/common">
+  <headerData>
+    <submissionType>144</submissionType>
+    <filerInfo>
+      <filer>
+        <filerCredentials>
+          <cik>0002137517</cik>
+          <ccc>XXXXXXXX</ccc>
+        </filerCredentials>
+      </filer>
+      <liveTestFlag>LIVE</liveTestFlag>
+
+
+
+    </filerInfo>
+  </headerData>
+  <formData>
+    <issuerInfo>
+      <issuerCik>0000885550</issuerCik>
+      <issuerName>Credit Acceptance Corp</issuerName>
+      <secFileNumber>000-20202</secFileNumber>
+      <issuerAddress>
+        <com:street1>25505 West Twelve Mile Road</com:street1>
+        <com:city>Southfield</com:city>
+        <com:stateOrCountry>MI</com:stateOrCountry>
+        <com:zipCode>48034</com:zipCode>
+      </issuerAddress>
+      <issuerContactPhone>2483532700</issuerContactPhone>
+      <nameOfPersonForWhoseAccountTheSecuritiesAreToBeSold>Jill Foss Watson Irrevocable Trust</nameOfPersonForWhoseAccountTheSecuritiesAreToBeSold>
+      <relationshipsToIssuer>
+        <relationshipToIssuer>Member of immediate family of any of the foregoing</relationshipToIssuer>
+      </relationshipsToIssuer>
+    </issuerInfo>
+    <securitiesInformation>
+      <securitiesClassTitle>Common</securitiesClassTitle>
+      <brokerOrMarketmakerDetails>
+        <name>UBS Financial Services Inc</name>
+        <address>
+          <com:street1>1000 Harbor Blvd</com:street1>
+          <com:street2>3rd Floor</com:street2>
+          <com:city>Weehawken</com:city>
+          <com:stateOrCountry>NJ</com:stateOrCountry>
+          <com:zipCode>07086</com:zipCode>
+        </address>
+      </brokerOrMarketmakerDetails>
+      <noOfUnitsSold>14064</noOfUnitsSold>
+      <aggregateMarketValue>7805520</aggregateMarketValue>
+      <noOfUnitsOutstanding>10380580</noOfUnitsOutstanding>
+      <approxSaleDate>09/25/2026</approxSaleDate>
+      <securitiesExchangeName>NASDAQ</securitiesExchangeName>
+    </securitiesInformation>
+    <securitiesToBeSold>
+      <securitiesClassTitle>Common</securitiesClassTitle>
+      <acquiredDate>10/01/2008</acquiredDate>
+      <natureOfAcquisitionTransaction>GRAT Remainder</natureOfAcquisitionTransaction>
+      <nameOfPersonfromWhomAcquired>Founders Shares</nameOfPersonfromWhomAcquired>
+      <isGiftTransaction>N</isGiftTransaction>
+      <amountOfSecuritiesAcquired>14064</amountOfSecuritiesAcquired>
+      <paymentDate>10/01/2008</paymentDate>
+      <natureOfPayment>GRAT Remainder</natureOfPayment>
+    </securitiesToBeSold>
+    <nothingToReportFlagOnSecuritiesSoldInPast3Months>N</nothingToReportFlagOnSecuritiesSoldInPast3Months>
+    <securitiesSoldInPast3Months>
+      <sellerDetails>
+        <name>Jill Foss Watson Living Trust </name>
+        <address>
+          <com:street1>C/o UBS Financial Services</com:street1>
+          <com:street2>1000 Harbour Blvd 3rd Fl</com:street2>
+          <com:city>Weehawken</com:city>
+          <com:stateOrCountry>NJ</com:stateOrCountry>
+          <com:zipCode>07086</com:zipCode>
+        </address>
+      </sellerDetails>
+      <securitiesClassTitle>Common</securitiesClassTitle>
+      <saleDate>07/02/2026</saleDate>
+      <amountOfSecuritiesSold>6500</amountOfSecuritiesSold>
+      <grossProceeds>4259620</grossProceeds>
+    </securitiesSoldInPast3Months>
+    <securitiesSoldInPast3Months>
+      <sellerDetails>
+        <name>Meryl S Paul 2025 Trust</name>
+        <address>
+          <com:street1>C/o UBS Securities LLC</com:street1>
+          <com:street2>11 Madison Ave 4F</com:street2>
+          <com:city>New York</com:city>
+          <com:stateOrCountry>NY</com:stateOrCountry>
+          <com:zipCode>10010</com:zipCode>
+        </address>
+      </sellerDetails>
+      <securitiesClassTitle>Common</securitiesClassTitle>
+      <saleDate>07/01/2026</saleDate>
+      <amountOfSecuritiesSold>19066</amountOfSecuritiesSold>
+      <grossProceeds>10000000</grossProceeds>
+    </securitiesSoldInPast3Months>
+    <securitiesSoldInPast3Months>
+      <sellerDetails>
+        <name>Jill Foss Watson Irrevocable Trust</name>
+        <address>
+          <com:street1>C/o UBS Financial Services</com:street1>
+          <com:street2>1000 Harbour Blvd 3rd Fl</com:street2>
+          <com:city>Weehawken</com:city>
+          <com:stateOrCountry>NJ</com:stateOrCountry>
+          <com:zipCode>07086</com:zipCode>
+        </address>
+      </sellerDetails>
+      <securitiesClassTitle>Common</securitiesClassTitle>
+      <saleDate>07/02/2026</saleDate>
+      <amountOfSecuritiesSold>4500</amountOfSecuritiesSold>
+      <grossProceeds>2923135</grossProceeds>
+    </securitiesSoldInPast3Months>
+    <securitiesSoldInPast3Months>
+      <sellerDetails>
+        <name>Jill Foss Watson Irrevocable Trust</name>
+        <address>
+          <com:street1>C/o UBS Financial Services</com:street1>
+          <com:street2>1000 Harbour Blvd 3rd Fl</com:street2>
+          <com:city>Weehawken</com:city>
+          <com:stateOrCountry>NJ</com:stateOrCountry>
+          <com:zipCode>07086</com:zipCode>
+        </address>
+      </sellerDetails>
+      <securitiesClassTitle>Common</securitiesClassTitle>
+      <saleDate>07/16/2026</saleDate>
+      <amountOfSecuritiesSold>1436</amountOfSecuritiesSold>
+      <grossProceeds>919405</grossProceeds>
+    </securitiesSoldInPast3Months>
+    <securitiesSoldInPast3Months>
+      <sellerDetails>
+        <name>JFW 2014 Childrens Trust FBO DTW</name>
+        <address>
+          <com:street1>C/o UBS Financial Services</com:street1>
+          <com:street2>1000 Harbour Blvd 3rd Fl</com:street2>
+          <com:city>Weehawken</com:city>
+          <com:stateOrCountry>NJ</com:stateOrCountry>
+          <com:zipCode>07086</com:zipCode>
+        </address>
+      </sellerDetails>
+      <securitiesClassTitle>Common</securitiesClassTitle>
+      <saleDate>07/02/2026</saleDate>
+      <amountOfSecuritiesSold>3000</amountOfSecuritiesSold>
+      <grossProceeds>1948544</grossProceeds>
+    </securitiesSoldInPast3Months>
+    <securitiesSoldInPast3Months>
+      <sellerDetails>
+        <name>JFW 2014 Childrens Trust FBO DTW</name>
+        <address>
+          <com:street1>C/o UBS Financial Services</com:street1>
+          <com:street2>1000 Harbour Blvd 3rd Fl</com:street2>
+          <com:city>Weehawken</com:city>
+          <com:stateOrCountry>NJ</com:stateOrCountry>
+          <com:zipCode>07086</com:zipCode>
+        </address>
+      </sellerDetails>
+      <securitiesClassTitle>Common</securitiesClassTitle>
+      <saleDate>07/16/2026</saleDate>
+      <amountOfSecuritiesSold>1315</amountOfSecuritiesSold>
+      <grossProceeds>842168</grossProceeds>
+    </securitiesSoldInPast3Months>
+    <securitiesSoldInPast3Months>
+      <sellerDetails>
+        <name>JFW 2014 Childrens Trust FBO DTW</name>
+        <address>
+          <com:street1>C/o UBS Financial Services</com:street1>
+          <com:street2>1000 Harbour Blvd 3rd Fl</com:street2>
+          <com:city>Weehawken</com:city>
+          <com:stateOrCountry>NJ</com:stateOrCountry>
+          <com:zipCode>07086</com:zipCode>
+        </address>
+      </sellerDetails>
+      <securitiesClassTitle>Common</securitiesClassTitle>
+      <saleDate>07/17/2026</saleDate>
+      <amountOfSecuritiesSold>117</amountOfSecuritiesSold>
+      <grossProceeds>74773</grossProceeds>
+    </securitiesSoldInPast3Months>
+    <securitiesSoldInPast3Months>
+      <sellerDetails>
+        <name>JFW 2014 Childrens Trust FBO GEW</name>
+        <address>
+          <com:street1>C/o UBS Financial Services</com:street1>
+          <com:street2>1000 Harbour Blvd 3rd Fl</com:street2>
+          <com:city>Weehawken</com:city>
+          <com:stateOrCountry>NJ</com:stateOrCountry>
+          <com:zipCode>07086</com:zipCode>
+        </address>
+      </sellerDetails>
+      <securitiesClassTitle>Common</securitiesClassTitle>
+      <saleDate>07/02/2026</saleDate>
+      <amountOfSecuritiesSold>3000</amountOfSecuritiesSold>
+      <grossProceeds>1948666</grossProceeds>
+    </securitiesSoldInPast3Months>
+    <securitiesSoldInPast3Months>
+      <sellerDetails>
+        <name>JFW 2014 Childrens Trust FBO GEW</name>
+        <address>
+          <com:street1>C/o UBS Financial Services</com:street1>
+          <com:street2>1000 Harbour Blvd 3rd Fl</com:street2>
+          <com:city>Weehawken</com:city>
+          <com:stateOrCountry>NJ</com:stateOrCountry>
+          <com:zipCode>07086</com:zipCode>
+        </address>
+      </sellerDetails>
+      <securitiesClassTitle>Common</securitiesClassTitle>
+      <saleDate>07/16/2026</saleDate>
+      <amountOfSecuritiesSold>895</amountOfSecuritiesSold>
+      <grossProceeds>572946</grossProceeds>
+    </securitiesSoldInPast3Months>
+    <remarks>Sales by Seller, Jill Foss Watson Irrevocable Trust, should be aggregated w the sales of 20,000 shares by Allan Apple as Trustee of the Donald A Foss Remainder Trust FBO JJDF, 20,000 shares by Allan Apple as Trustee of the DAF Remainder Trust FBO SDF, 6,105 shares by Todd Watson as Trustee of the JFW 2014 Childrens Trust FBO GEW, 5,568 shares by Todd Watson as Trustee of the JFW 2014 Childrens Trust FBO DTW, 15,000 shares by Todd Watson as Trustee of the Eidolon Corvid 2024 Trust, and 12,000 shares by JFW as Trustee of the Jill Foss Watson Living Trust. The Trusts are filing separate Forms 144 for aggregate sales of up to 92,737 shares. Todd Watson is Trustee and Spouse of Jill Foss Watson who is a 10% Holder of CACC.</remarks>
+    <noticeSignature>
+      <noticeDate>09/25/2026</noticeDate>
+      <signature>/s/Mijo  Suric, for UBS Financial Services Inc, as attorney-in-fact for Jill Foss Watson Irrevocable Trust</signature>
+    </noticeSignature>
+  </formData>
+</edgarSubmission>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

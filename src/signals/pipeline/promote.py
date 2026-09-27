@@ -28,7 +28,11 @@ from datetime import datetime, timedelta
 from ..bus.base import BusMessage, Publisher
 from ..models import Score
 from ..scoring.form4 import Form4Facts, score_form4
-from ..scoring.tables import FORM4_CLUSTER_MIN_INSIDERS, FORM4_CLUSTER_WINDOW_DAYS
+from ..scoring.tables import (
+    FORM4_CLUSTER_MIN_INSIDERS,
+    FORM4_CLUSTER_WINDOW_DAYS,
+    FORM144_CLUSTER_WINDOW_DAYS,
+)
 from ..store.base import EventRow, Store
 
 log = logging.getLogger(__name__)
@@ -54,6 +58,24 @@ async def count_cluster_insiders(store: Store, company_id: int, now: datetime) -
     string matching would split them and invent a cluster out of one buyer.
     """
     return await store.distinct_p_buyers(company_id, now - CLUSTER_WINDOW)
+
+
+async def count_cluster_sellers(
+    store: Store, company_id: int, now: datetime, sellers: tuple[str, ...] = ()
+) -> int:
+    """Distinct insiders noticing a sale inside the window, this notice included.
+
+    By CIK, for the same reason as the buy side: filing agents spell one person's
+    name several ways, and a name match would invent a crowd out of one seller.
+
+    ``sellers`` is the notice being scored. It has to be counted here because
+    notices are never rescored afterwards -- the buy side can count only what is
+    stored, since promotion reaches back and fixes the arithmetic later, but a 144
+    gets one chance to see the crowd it is part of.
+    """
+    return await store.distinct_144_sellers(
+        company_id, now - timedelta(days=FORM144_CLUSTER_WINDOW_DAYS), sellers
+    )
 
 
 def rescore_with_cluster(row: EventRow, cluster_insiders: int) -> Score:

@@ -14,8 +14,9 @@ from ..prices import PriceService
 from ..resolve.resolver import Resolver
 from ..scoring import score_event
 from ..scoring.form4 import Form4Facts, describe_form4, score_form4
+from ..scoring.one44 import Form144Facts, describe_144, score_144
 from ..store.base import Store
-from .promote import Promoter, count_cluster_insiders
+from .promote import Promoter, count_cluster_insiders, count_cluster_sellers
 
 log = logging.getLogger(__name__)
 
@@ -110,6 +111,17 @@ class Processor:
         if company is not None and _is_insider_buy(event):
             cluster_insiders = await count_cluster_insiders(
                 self._store, company.id, event.occurred_at
+            )
+        # Several insiders noticing sales inside a month is the signal a single
+        # notice is not. Counted at insert only: unlike the buy side there is no
+        # retroactive promotion for notices, so an earlier notice keeps the score
+        # it was given. STATUS.md records why.
+        elif company is not None and _is_sale_notice(event):
+            cluster_insiders = await count_cluster_sellers(
+                self._store,
+                company.id,
+                event.occurred_at,
+                tuple(str(c) for c in (event.payload.get("seller_ciks") or [])),
             )
 
         live = self._started_at is not None and event.occurred_at >= self._started_at
@@ -240,8 +252,22 @@ def _is_insider_buy(event: NormalizedEvent) -> bool:
     return event.source == "edgar_form4" and event.event_type == "form4_buy"
 
 
+def _is_sale_notice(event: NormalizedEvent) -> bool:
+    return event.source == "edgar_144"
+
+
 def _score(event: NormalizedEvent, cluster_insiders: int) -> Score:
-    """Form 4 needs the cluster count; everything else scores from itself."""
+    """Form 4 and Form 144 need the cluster count; the rest score from themselves."""
+    if _is_sale_notice(event):
+        notice = Form144Facts.from_payload(event.payload)
+        seller = str(event.payload.get("seller_name") or "an affiliate")
+        headline, detail = describe_144(
+            notice, seller, str(event.payload.get("relationship") or ""), cluster_insiders
+        )
+        event.payload["headline"] = headline
+        event.payload["detail"] = detail
+        event.payload["cluster_sellers"] = cluster_insiders
+        return score_144(notice, cluster_sellers=cluster_insiders)
     if _is_insider_buy(event):
         facts = Form4Facts.from_payload(event.payload)
         score = score_form4(facts, cluster_insiders=cluster_insiders)

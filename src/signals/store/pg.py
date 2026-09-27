@@ -137,6 +137,14 @@ class PgStore:
         value = await self._pool.fetchval(q.DISTINCT_P_BUYERS, company_id, since)
         return int(value or 0)
 
+    async def distinct_144_sellers(
+        self, company_id: int, since: datetime, including: tuple[str, ...] = ()
+    ) -> int:
+        value = await self._pool.fetchval(
+            q.DISTINCT_144_SELLERS, company_id, since, list(including)
+        )
+        return int(value or 0)
+
     async def events_missing_cluster_bonus(
         self, company_id: int, since: datetime
     ) -> list[EventRow]:

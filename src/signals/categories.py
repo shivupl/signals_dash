@@ -16,6 +16,10 @@ from .scoring.tables import ITEM_BANDS
 CATEGORY_LABELS: Final[dict[str, str]] = {
     "insider_buy": "Insider buy",
     "insider_sell": "Insider sell",
+    # Intent, not a receipt: a Form 144 is filed before the sale. Kept apart from
+    # insider_sell so "they have sold" and "they have said they will" can be read
+    # -- and filtered -- separately.
+    "sale_notice": "Planned sale (144)",
     "grant_award": "Grant / award",
     "officer_change": "Officer / director change",
     "material_agreement": "Material agreement",
@@ -59,6 +63,8 @@ def categorize(source: str, event_type: str, payload: Mapping[str, Any]) -> str:
         # category and the score always describe the same item.
         worst = max(items, key=lambda i: ITEM_BANDS[i])
         return _8K_ITEM_CATEGORY.get(worst, "other")
+    if source == "edgar_144":
+        return "sale_notice"
     if source == "edgar_form4":
         codes = {str(c).upper() for c in (payload.get("codes") or [])}
         if payload.get("is_open_market_purchase") or "P" in codes:

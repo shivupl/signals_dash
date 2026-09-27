@@ -51,6 +51,46 @@ TARGETS: list[tuple[str, str, bool]] = [
         "https://www.nasdaqtrader.com/rss.aspx?feed=tradehalts",
         False,
     ),
+    ("edgar/atom_144_current.xml", EDGAR_INDEX.format(t=urllib.parse.quote("144")), True),
+    # Form 144 submissions, chosen for the shapes that break a naive parser. The
+    # namespace prefix is set by the filing agent and comes in three styles, so a
+    # parser that hard-codes one silently reads nothing at all.
+    (
+        "edgar/form144_officer_ns2.txt",  # ns2: prefix, Officer, no plan, $56.9M
+        "https://www.sec.gov/Archives/edgar/data/1943896/000195824426000624/"
+        "0001958244-26-000624.txt",
+        True,
+    ),
+    (
+        "edgar/form144_plan_own_prefix.txt",  # own: prefix, 10b5-1 plan, prior sales
+        "https://www.sec.gov/Archives/edgar/data/1713683/000196858226001015/"
+        "0001968582-26-001015.txt",
+        True,
+    ),
+    (
+        "edgar/form144_no_prefix.txt",  # default namespace, no prefix at all, $24.8M
+        "https://www.sec.gov/Archives/edgar/data/2132472/000195004726009828/"
+        "0001950047-26-009828.txt",
+        True,
+    ),
+    (
+        "edgar/form144_family_trust.txt",  # relationship is a family member, 9 prior sales
+        "https://www.sec.gov/Archives/edgar/data/2137517/000196922326001041/"
+        "0001969223-26-001041.txt",
+        True,
+    ),
+    (
+        "edgar/form144_former_officer.txt",  # "Former Officer", and an EMPTY plan element
+        "https://www.sec.gov/Archives/edgar/data/1443669/000195004726009826/"
+        "0001950047-26-009826.txt",
+        True,
+    ),
+    (
+        "edgar/form144_ten_percent.txt",  # "10% Stockholder", empty plan, small float
+        "https://www.sec.gov/Archives/edgar/data/1106145/000195004726009827/"
+        "0001950047-26-009827.txt",
+        True,
+    ),
 ]
 
 
@@ -66,6 +106,11 @@ def main() -> int:
         "--allow-network",
         action="store_true",
         help="required: this script is the one place that leaves the machine",
+    )
+    parser.add_argument(
+        "--only",
+        default="",
+        help="capture just the targets whose path contains this substring",
     )
     args = parser.parse_args()
     if not args.allow_network:
@@ -87,7 +132,11 @@ def main() -> int:
         manifest = json.loads(MANIFEST.read_text())
 
     failures = 0
-    for rel, url, _needs_ua in TARGETS:
+    targets = [t for t in TARGETS if args.only in t[0]]
+    if not targets:
+        print(f"no target path contains {args.only!r}", file=sys.stderr)
+        return 2
+    for rel, url, _needs_ua in targets:
         target = FIXTURES / rel
         target.parent.mkdir(parents=True, exist_ok=True)
         try:

@@ -144,9 +144,21 @@ class TestForm4Resolution:
 
 
 class TestBuildAdapters:
-    def test_builds_the_three_edgar_sources(self) -> None:
+    def test_builds_the_four_edgar_sources(self) -> None:
         names = {a.name for a in build_edgar_adapters()}
-        assert names == {"edgar_8k", "edgar_form4", "edgar_13dg"}
+        assert names == {"edgar_8k", "edgar_form4", "edgar_13dg", "edgar_144"}
+
+    def test_form_144_polls_less_often_than_form_4(self) -> None:
+        """Roughly eighteen notices a day against hundreds of Form 4s, and a 144
+        is advance notice -- seconds do not decide anything."""
+        by_name = {a.name: a for a in build_edgar_adapters(interval=2.0)}
+        assert by_name["edgar_144"].interval == 4.0
+        assert by_name["edgar_form4"].interval == 2.0
+
+    def test_form_144_declares_its_base_form(self) -> None:
+        """Prefix matching returns 1445 and friends for type=144."""
+        by_name = {a.name: a for a in build_edgar_adapters()}
+        assert by_name["edgar_144"].accepts == frozenset({"144"})  # type: ignore[attr-defined]
 
     def test_thirteen_d_and_g_are_separate_queries(self) -> None:
         """browse-edgar will not return both from one type parameter."""

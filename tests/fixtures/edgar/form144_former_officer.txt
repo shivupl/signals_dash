@@ -1,0 +1,164 @@
+<SEC-DOCUMENT>0001950047-26-009826.txt : 20260925
+<SEC-HEADER>0001950047-26-009826.hdr.sgml : 20260925
+<ACCEPTANCE-DATETIME>20260925162124
+ACCESSION NUMBER:		0001950047-26-009826
+CONFORMED SUBMISSION TYPE:	144
+PUBLIC DOCUMENT COUNT:		1
+FILED AS OF DATE:		20260925
+DATE AS OF CHANGE:		20260925
+
+SUBJECT COMPANY:	
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			Proto Labs Inc
+		CENTRAL INDEX KEY:			0001443669
+		STANDARD INDUSTRIAL CLASSIFICATION:	FABRICATED STRUCTURAL METAL PRODUCTS [3440]
+		ORGANIZATION NAME:           	04 Manufacturing
+		EIN:				000000000
+		STATE OF INCORPORATION:			MN
+		FISCAL YEAR END:			1231
+
+	FILING VALUES:
+		FORM TYPE:		144
+		SEC ACT:		1933 Act
+		SEC FILE NUMBER:	001-35435
+		FILM NUMBER:		261410676
+
+	BUSINESS ADDRESS:	
+		STREET 1:		5540 Pioneer Creek
+		CITY:			Maple Plain
+		STATE:			MN
+		ZIP:			55359
+		BUSINESS PHONE:		763-479-7474
+
+	MAIL ADDRESS:	
+		STREET 1:		5540 Pioneer Creek
+		CITY:			Maple Plain
+		STATE:			MN
+		ZIP:			55359
+
+REPORTING-OWNER:	
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			Kenison Michael R.
+		CENTRAL INDEX KEY:			0001870293
+		ORGANIZATION NAME:           	
+
+	FILING VALUES:
+		FORM TYPE:		144
+
+	MAIL ADDRESS:	
+		STREET 1:		5540 PIONEER CREEK DRIVE
+		CITY:			MAPLE PLAIN
+		STATE:			MN
+		ZIP:			55359
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>144
+<SEQUENCE>1
+<FILENAME>primary_doc.xml
+<TEXT>
+<XML>
+<?xml version="1.0" encoding="UTF-8"?><edgarSubmission xmlns="http://www.sec.gov/edgar/ownership" xmlns:ns2="http://www.sec.gov/edgar/common">
+    <headerData>
+        <submissionType>144</submissionType>
+        <filerInfo>
+            <filer>
+                <filerCredentials>
+                    <cik>0001870293</cik>
+                    <ccc>XXXXXXXX</ccc>
+                </filerCredentials>
+            </filer>
+            <liveTestFlag>LIVE</liveTestFlag>
+
+
+
+        </filerInfo>
+    </headerData>
+    <formData>
+        <issuerInfo>
+            <issuerCik>0001443669</issuerCik>
+            <issuerName>PROTO LABS, INC.</issuerName>
+            <secFileNumber>001-35435</secFileNumber>
+            <issuerAddress>
+                <ns2:street1>5540 Pioneer Creek Drive</ns2:street1>
+                <ns2:city>Maple Plain</ns2:city>
+                <ns2:stateOrCountry>MN</ns2:stateOrCountry>
+                <ns2:zipCode>55359</ns2:zipCode>
+            </issuerAddress>
+            <issuerContactPhone>763-479-3680</issuerContactPhone>
+            <nameOfPersonForWhoseAccountTheSecuritiesAreToBeSold>MICHAEL R KENISON</nameOfPersonForWhoseAccountTheSecuritiesAreToBeSold>
+            <relationshipsToIssuer>
+                <relationshipToIssuer>Former Officer</relationshipToIssuer>
+            </relationshipsToIssuer>
+        </issuerInfo>
+        <securitiesInformation>
+            <securitiesClassTitle>Common</securitiesClassTitle>
+            <brokerOrMarketmakerDetails>
+                <name>Morgan Stanley Smith Barney LLC Executive Financial Services</name>
+                <address>
+                    <ns2:street1>1 New York Plaza</ns2:street1>
+                    <ns2:street2>8th Floor</ns2:street2>
+                    <ns2:city>New York</ns2:city>
+                    <ns2:stateOrCountry>NY</ns2:stateOrCountry>
+                    <ns2:zipCode>10004</ns2:zipCode>
+                </address>
+            </brokerOrMarketmakerDetails>
+            <noOfUnitsSold>1143</noOfUnitsSold>
+            <aggregateMarketValue>109493.69</aggregateMarketValue>
+            <noOfUnitsOutstanding>23921897</noOfUnitsOutstanding>
+            <approxSaleDate>09/25/2026</approxSaleDate>
+            <securitiesExchangeName>NYSE</securitiesExchangeName>
+        </securitiesInformation>
+        <securitiesToBeSold>
+            <securitiesClassTitle>Common</securitiesClassTitle>
+            <acquiredDate>09/25/2026</acquiredDate>
+            <natureOfAcquisitionTransaction>Exercise of Options Under a Registered Plan</natureOfAcquisitionTransaction>
+            <nameOfPersonfromWhomAcquired>Issuer</nameOfPersonfromWhomAcquired>
+            <isGiftTransaction>N</isGiftTransaction>
+            <amountOfSecuritiesAcquired>1143</amountOfSecuritiesAcquired>
+            <paymentDate>09/25/2026</paymentDate>
+            <natureOfPayment>Cash</natureOfPayment>
+        </securitiesToBeSold>
+        <nothingToReportFlagOnSecuritiesSoldInPast3Months>N</nothingToReportFlagOnSecuritiesSoldInPast3Months>
+        <securitiesSoldInPast3Months>
+            <sellerDetails>
+                <name>MICHAEL R KENISON</name>
+                <address>
+                    <ns2:street1>5540 Pioneer Creek Drive</ns2:street1>
+                    <ns2:city>Maple Plain</ns2:city>
+                    <ns2:stateOrCountry>MN</ns2:stateOrCountry>
+                    <ns2:zipCode>55359</ns2:zipCode>
+                </address>
+            </sellerDetails>
+            <securitiesClassTitle>Common</securitiesClassTitle>
+            <saleDate>09/24/2026</saleDate>
+            <amountOfSecuritiesSold>1800</amountOfSecuritiesSold>
+            <grossProceeds>172534.50</grossProceeds>
+        </securitiesSoldInPast3Months>
+        <securitiesSoldInPast3Months>
+            <sellerDetails>
+                <name>MICHAEL R KENISON</name>
+                <address>
+                    <ns2:street1>5540 Pioneer Creek Drive</ns2:street1>
+                    <ns2:city>Maple Plain</ns2:city>
+                    <ns2:stateOrCountry>MN</ns2:stateOrCountry>
+                    <ns2:zipCode>55359</ns2:zipCode>
+                </address>
+            </sellerDetails>
+            <securitiesClassTitle>Common</securitiesClassTitle>
+            <saleDate>08/04/2026</saleDate>
+            <amountOfSecuritiesSold>10753</amountOfSecuritiesSold>
+            <grossProceeds>947786.62</grossProceeds>
+        </securitiesSoldInPast3Months>
+        <noticeSignature>
+            <noticeDate>09/25/2026</noticeDate>
+            <planAdoptionDates/>
+            <signature>/s/ Michael Roy Kenison</signature>
+        </noticeSignature>
+    </formData>
+</edgarSubmission>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

@@ -53,12 +53,21 @@ the feed as a flag of its own.
 | EDGAR 8-K | Material events, scored by item number | index poll, 2 s — items come free in the index |
 | EDGAR Form 4 | Open-market insider buys; grants and sales score 0 | index poll + one document fetch per watched filing |
 | EDGAR 13D/G | Activist (85) vs passive (30) stakes | index poll, 4 s |
+| EDGAR Form 144 | Notice of intent to sell, filed *before* the sale | index poll, 4 s + one document fetch per watched notice |
 | Trading halts | News pending, regulatory, volatility | Nasdaq Trader RSS, 10 s — covers NYSE/Arca/AMEX too |
 | Prices | `price_at` on every flag, weekly change, earnings dates | yfinance, best-effort, never blocks a flag; the 15-minute refresh covers `My 40`, index names fill on demand |
 
 Measured over six days, the 500 index members file **38-75 Form 4s and 10-22 8-Ks
 a day, and no 13D/Gs at all** -- so the second monitor adds roughly seventy events
-a day, not the hundreds it looks like it should.
+a day, not the hundreds it looks like it should. Form 144 notices add 3-10 a day
+for the watchlist and 8-21 for the index.
+
+A Form 144 is the earliest public notice of insider selling: filed before the
+sale, and it declares the dollar value, the shares outstanding, the seller's
+relationship and any 10b5-1 plan. It scores quietly on purpose -- base 20, so a
+scheduled trickle out of a vested position is recorded and never flags. What earns
+a flag is size (over $10M), concentration (over 1% of the company), or three
+insiders noticing sales inside a month.
 
 `config/watchlist.yml` is gitignored — what you watch is your own business. Without
 one, seeding falls back to the committed example. After editing:

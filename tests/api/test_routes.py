@@ -369,3 +369,37 @@ class TestActive:
     async def test_rejects_all_as_a_universe(self, client: httpx.AsyncClient) -> None:
         """"all" is the absence of a filter, which is not a rail."""
         assert (await client.get("/api/active?universe=all")).status_code == 422
+
+
+class TestForm144Vocabulary:
+    """The filter bar is built from /api/meta, so a new source has to appear there
+    or it is unreachable in the UI."""
+
+    async def test_form_144_is_offered_as_a_source(self, client: httpx.AsyncClient) -> None:
+        sources = (await client.get("/api/meta")).json()["sources"]
+        assert {"value": "edgar_144", "label": "Form 144"} in sources
+
+    async def test_planned_sale_is_offered_as_a_category(self, client: httpx.AsyncClient) -> None:
+        categories = (await client.get("/api/meta")).json()["categories"]
+        assert {"value": "sale_notice", "label": "Planned sale (144)"} in categories
+
+    async def test_a_notice_can_be_filtered_by_source(
+        self, client: httpx.AsyncClient, pg: asyncpg.Connection
+    ) -> None:
+        company_id = await pg.fetchval(
+            "insert into company (cik, ticker, name, watched) "
+            "values ('0000000041', 'NOTE', 'Note Inc.', true) returning id"
+        )
+        await pg.execute(
+            """
+            insert into event (company_id, source, event_type, occurred_at, external_id,
+                               score, payload, category)
+            values ($1, 'edgar_144', 'sale_notice', $2, 'n1', 45,
+                    '{"headline": "Planned sale by A Seller · $1,000,000"}'::jsonb, 'sale_notice')
+            """,
+            company_id,
+            NOW,
+        )
+        rows = (await client.get("/api/feed?source=edgar_144&min_score=0")).json()
+        assert [r["headline"] for r in rows] == ["Planned sale by A Seller · $1,000,000"]
+        assert rows[0]["category"] == "sale_notice"

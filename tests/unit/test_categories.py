@@ -73,3 +73,18 @@ class TestOtherSources:
     def test_every_result_has_a_label(self) -> None:
         for args in [("edgar_8k", "8k", {}), ("x", "y", {}), ("halts", "halt", {})]:
             assert categorize(*args) in CATEGORY_LABELS
+
+
+class TestSaleNotice:
+    """A Form 144 is intent, and intent is not a receipt."""
+
+    def test_a_notice_is_its_own_category(self) -> None:
+        assert categorize("edgar_144", "sale_notice", {}) == "sale_notice"
+
+    def test_it_is_not_filed_under_insider_sell(self) -> None:
+        """Otherwise "they sold" and "they say they will sell" become one filter,
+        and the distinction is the entire value of the form."""
+        assert categorize("edgar_144", "sale_notice", {}) != "insider_sell"
+
+    def test_the_label_exists_for_the_filter_bar(self) -> None:
+        assert CATEGORY_LABELS["sale_notice"] == "Planned sale (144)"

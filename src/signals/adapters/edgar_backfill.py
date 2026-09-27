@@ -42,6 +42,7 @@ MAX_SEEN: Final[int] = 20000
 _8K = {"8-K"}
 _FORM4 = {"4"}
 _13DG = {"SC 13D", "SC 13G"}
+_144 = {"144"}
 
 
 def _base(form: str) -> str:
@@ -62,7 +63,7 @@ def recent_filings(payload: bytes, since: datetime) -> list[dict[str, Any]]:
         recent.get("items", []),
         strict=False,
     ):
-        if _base(form) not in _8K | _FORM4 | _13DG:
+        if _base(form) not in _8K | _FORM4 | _13DG | _144:
             continue
         try:
             # Documented as UTC, e.g. "2026-09-18T00:53:51.000Z".
@@ -91,7 +92,13 @@ def as_group(filing: dict[str, Any]) -> AccessionGroup:
     serves both paths and the two cannot drift."""
     form = filing["form"]
     base = _base(form)
-    role = Role.ISSUER if base in _FORM4 else Role.SUBJECT if base in _13DG else Role.FILER
+    role = (
+        Role.ISSUER
+        if base in _FORM4
+        else Role.SUBJECT
+        if base in _13DG | _144
+        else Role.FILER
+    )
     folder = filing["accession"].replace("-", "")
     link = (
         f"https://www.sec.gov/Archives/edgar/data/{int(filing['cik'])}/{folder}/"

@@ -111,6 +111,7 @@ async def meta() -> dict[str, object]:
             {"value": "edgar_8k", "label": "8-K"},
             {"value": "edgar_form4", "label": "Form 4"},
             {"value": "edgar_13dg", "label": "13D/G"},
+            {"value": "edgar_144", "label": "Form 144"},
             {"value": "halts", "label": "Halts"},
             {"value": "system", "label": "System"},
         ],

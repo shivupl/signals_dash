@@ -207,11 +207,12 @@ class EdgarIndexAdapter:
 
 
 def build_edgar_adapters(interval: float = 2.0) -> list[Adapter]:
-    """The three EDGAR sources.
+    """The four EDGAR sources.
 
     Separate adapters rather than one, so a parser bug in Form 4 cannot stop 8-Ks
     arriving -- the runner isolates failures per adapter.
     """
+    from .edgar_144 import Edgar144Adapter
     from .edgar_form4 import EdgarForm4Adapter
 
     return [
@@ -224,4 +225,6 @@ def build_edgar_adapters(interval: float = 2.0) -> list[Adapter]:
             accepts=["SC 13D", "SC 13G"],
             interval=interval * 2,
         ),
+        # Form 144 also needs its document, and it is lower volume than Form 4.
+        Edgar144Adapter(interval=interval * 2),
     ]
