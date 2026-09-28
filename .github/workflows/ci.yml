@@ -1,0 +1,86 @@
+# Every gate that guards this repo, on every push.
+#
+# The point is not only discipline. This runs from a fresh clone on a machine that
+# has none of the local conveniences -- no .env, no warm Docker volumes, no
+# bind-mounted source -- which is the only way to catch "it works because that
+# file happens to exist on my laptop". A missing fixture once reached the
+# production image exactly that way.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: signals
+          TZ: UTC
+          PGTZ: UTC
+        ports:
+          - 5432:5432
+        # A running container is not a ready server, so wait for pg_isready
+        # rather than for the port to open.
+        options: >-
+          --health-cmd "pg_isready -U postgres -d signals"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      # The `-m pg` tests create their own signals_test database from this DSN.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/signals
+      TZ: UTC
+      PGTZ: UTC
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Lint
+        run: ruff check src tests scripts
+
+      - name: Types
+        run: mypy
+
+      - name: Layers
+        # The contracts that keep parsers pure and scoring independent of IO.
+        run: lint-imports
+
+      - name: Tests
+        run: pytest -q
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        working-directory: web
+        run: npm ci
+
+      - name: Build
+        # `npm run build` is tsc -b followed by vite build, so this is the
+        # TypeScript gate as well as the bundle.
+        working-directory: web
+        run: npm run build

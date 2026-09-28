@@ -1,5 +1,7 @@
 # Signals
 
+[![CI](https://github.com/shivupl/signals_dash/actions/workflows/ci.yml/badge.svg)](https://github.com/shivupl/signals_dash/actions/workflows/ci.yml)
+
 One feed for everything that happens to the companies you watch — pulled from the
 original public sources when they publish, not when someone writes it up.
 
@@ -107,6 +109,17 @@ dollars sold.
 **The flag threshold** — what gets pushed and price-stamped — is a separate control
 under the gear icon. Changing it needs `ADMIN_TOKEN` from `.env` and never deletes
 anything: every event is stored at its score regardless.
+
+## Checks
+
+Every push runs the five gates in GitHub Actions: `ruff`, `mypy --strict`,
+import-linter (the parser/scoring purity contracts), the full pytest suite
+including the Postgres-backed tests against a service container, and `tsc` via the
+web build. It runs from a clean checkout with no `.env` and no warm volumes, which
+is the only way to catch "it works because that file happens to exist locally" --
+a missing fixture reached the production image exactly that way once.
+
+Locally the same gates are `make lint typecheck layers test` and `npm run build`.
 
 ## Layout
 
