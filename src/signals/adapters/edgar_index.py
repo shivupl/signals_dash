@@ -219,10 +219,14 @@ def build_edgar_adapters(interval: float = 2.0) -> list[Adapter]:
         EdgarIndexAdapter("edgar_8k", ["8-K"], accepts=["8-K"], interval=interval),
         # Form 4 needs the ownership document, so it has its own adapter.
         EdgarForm4Adapter(interval=interval),
+        # Both spellings. EDGAR renamed these forms in 2025 -- SC 13G became
+        # SCHEDULE 13G -- and since `type` is a prefix match, "SC 13D" does not
+        # match "SCHEDULE 13D". Polling only the old name found nothing at all
+        # after the rename, which is why activist stakes went quiet.
         EdgarIndexAdapter(
             "edgar_13dg",
-            ["SC 13D", "SC 13G"],
-            accepts=["SC 13D", "SC 13G"],
+            ["SC 13D", "SC 13G", "SCHEDULE 13D", "SCHEDULE 13G"],
+            accepts=["SC 13D", "SC 13G", "SCHEDULE 13D", "SCHEDULE 13G"],
             interval=interval * 2,
         ),
         # Form 144 also needs its document, and it is lower volume than Form 4.

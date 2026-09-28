@@ -43,7 +43,8 @@ MAX_SEEN: Final[int] = 20000
 
 _8K = {"8-K"}
 _FORM4 = {"4"}
-_13DG = {"SC 13D", "SC 13G"}
+#: Both spellings: EDGAR renamed these forms in 2025.
+_13DG = {"SC 13D", "SC 13G", "SCHEDULE 13D", "SCHEDULE 13G"}
 _144 = {"144"}
 
 

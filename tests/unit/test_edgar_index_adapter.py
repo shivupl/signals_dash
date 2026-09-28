@@ -161,9 +161,15 @@ class TestBuildAdapters:
         assert by_name["edgar_144"].accepts == frozenset({"144"})  # type: ignore[attr-defined]
 
     def test_thirteen_d_and_g_are_separate_queries(self) -> None:
-        """browse-edgar will not return both from one type parameter."""
+        """browse-edgar will not return both from one type parameter -- and since
+        2025 each exists under two names, so it is four queries, not two."""
         dg = next(a for a in build_edgar_adapters() if a.name == "edgar_13dg")
-        assert dg.forms == ("SC 13D", "SC 13G")  # type: ignore[attr-defined]
+        assert dg.forms == (  # type: ignore[attr-defined]
+            "SC 13D",
+            "SC 13G",
+            "SCHEDULE 13D",
+            "SCHEDULE 13G",
+        )
 
     def test_filings_are_not_gated_to_market_hours(self) -> None:
         """EDGAR accepts until roughly 22:00 ET and the heaviest 8-K window is

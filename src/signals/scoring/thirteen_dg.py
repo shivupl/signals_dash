@@ -2,9 +2,18 @@
 
 No parsing needed: the form type is the signal. 13D means the filer intends to
 influence the company; 13G means they are passive and merely large.
+
+EDGAR spells the form two ways. Filings up to 2024 are ``SC 13D`` / ``SC 13G``;
+from 2025 the same forms arrive as ``SCHEDULE 13D`` / ``SCHEDULE 13G``. Both are
+normalized here, because a scorer that recognises only the old spelling silently
+returns zero for the single highest-value signal in the system -- an activist
+stake -- and a zero looks exactly like a routine filing.
 """
 
 from __future__ import annotations
+
+import re
+from typing import Final
 
 from ..models import Score
 from .tables import (
@@ -14,9 +23,12 @@ from .tables import (
     SCHEDULE_13G_AMENDED,
 )
 
+#: "SC " or "SCHEDULE ", whichever this filing used.
+_PREFIX: Final[re.Pattern[str]] = re.compile(r"^\s*(?:SCHEDULE|SC)\s+", re.I)
+
 
 def score_13dg(form: str) -> Score:
-    normalized = form.strip().upper().replace("SC ", "")
+    normalized = _PREFIX.sub("", form.strip().upper())
     amended = normalized.endswith("/A")
     base = normalized[:-2] if amended else normalized
 

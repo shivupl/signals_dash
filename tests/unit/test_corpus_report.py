@@ -60,3 +60,38 @@ class TestCorpusReport:
         assert 30 in starts, "the watchlist's bar"
         assert 50 in starts, "the index view's bar"
         assert 85 in starts, "the rule-only floor"
+
+
+class TestFormFilter:
+    """Repair runs: re-walk one form without re-hydrating everything else."""
+
+    @staticmethod
+    def _filings():
+        return [
+            {"form": "4", "accession": "a"},
+            {"form": "SCHEDULE 13G", "accession": "b"},
+            {"form": "SCHEDULE 13G/A", "accession": "c"},
+            {"form": "8-K", "accession": "d"},
+        ]
+
+    def test_no_filter_keeps_everything(self) -> None:
+        from signals.backfill import only_forms
+
+        assert len(only_forms(self._filings(), [])) == 4
+
+    def test_filters_on_the_base_form_so_amendments_come_too(self) -> None:
+        from signals.backfill import only_forms
+
+        got = only_forms(self._filings(), ["SCHEDULE 13G"])
+        assert [f["accession"] for f in got] == ["b", "c"]
+
+    def test_matching_is_case_insensitive(self) -> None:
+        from signals.backfill import only_forms
+
+        assert len(only_forms(self._filings(), ["schedule 13g"])) == 2
+
+    def test_several_forms_at_once(self) -> None:
+        from signals.backfill import only_forms
+
+        got = only_forms(self._filings(), ["8-K", "4"])
+        assert sorted(f["accession"] for f in got) == ["a", "d"]

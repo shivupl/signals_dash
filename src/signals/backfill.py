@@ -44,6 +44,7 @@ from .adapters.base import FetchContext
 from .adapters.edgar_backfill import (
     SUBMISSIONS_URL,
     EdgarBackfillAdapter,
+    _base,
     recent_filings,
     shard_filings,
     shard_names,
@@ -106,8 +107,26 @@ async def load_prices(
         )
 
 
+def only_forms(filings: Sequence[dict[str, Any]], forms: Sequence[str]) -> list[dict[str, Any]]:
+    """Narrow a filing list to particular forms, matched on the base form.
+
+    This exists for repair runs. When the 13D/G rename was found, the fix needed
+    two years of Schedules re-walked -- and doing that through a full backfill
+    would have re-hydrated 6,500 Form 4 documents to store nothing.
+    """
+    if not forms:
+        return list(filings)
+    wanted = {f.strip().upper() for f in forms if f.strip()}
+    return [f for f in filings if _base(str(f["form"])).upper() in wanted]
+
+
 async def company_filings(
-    ctx: FetchContext, cik: str, name: str, since: datetime, progress: Progress
+    ctx: FetchContext,
+    cik: str,
+    name: str,
+    since: datetime,
+    progress: Progress,
+    forms: Sequence[str] = (),
 ) -> list[dict[str, Any]]:
     """Every wanted filing for one company since ``since``, shards included."""
     payload = await ctx.http.get_bytes(SUBMISSIONS_URL.format(cik=cik), priority=Priority.LOW)
@@ -129,7 +148,7 @@ async def company_filings(
                 continue
             progress.shards_fetched += 1
             filings.extend(shard_filings(body, since, cik=cik, name=name))
-    return filings
+    return only_forms(filings, forms)
 
 
 class Backfiller:
@@ -148,7 +167,13 @@ class Backfiller:
         self._clock = clock or SystemClock()
         self._adapter = EdgarBackfillAdapter()
 
-    async def run(self, companies: Sequence[Any], months: int, progress: Progress) -> Progress:
+    async def run(
+        self,
+        companies: Sequence[Any],
+        months: int,
+        progress: Progress,
+        forms: Sequence[str] = (),
+    ) -> Progress:
         since = self._clock.now() - timedelta(days=months * _DAYS_PER_MONTH)
         log.info(
             "backfilling %d companies since %s", len(companies), since.date().isoformat()
@@ -166,7 +191,7 @@ class Backfiller:
             )
             try:
                 filings = await company_filings(
-                    ctx, company.cik, company.name or "", since, progress
+                    ctx, company.cik, company.name or "", since, progress, forms
                 )
             except Exception as exc:  # noqa: BLE001 -- one company is not the run
                 progress.failures += 1
@@ -209,6 +234,7 @@ async def backfill(
     limit: int | None = None,
     skip_prices: bool = False,
     rate: float = DEFAULT_RATE,
+    forms: Sequence[str] = (),
     user_agent: str,
 ) -> Progress:
     from .bus.memory_bus import MemoryBus
@@ -248,7 +274,9 @@ async def backfill(
         )
         http = SourceClient(user_agent, clock=clock, rate=rate)
         try:
-            await Backfiller(store, processor, http, clock).run(companies, months, progress)
+            await Backfiller(store, processor, http, clock).run(
+                companies, months, progress, forms
+            )
         finally:
             await http.aclose()
         return progress
@@ -368,6 +396,11 @@ def main(argv: Sequence[str]) -> int:
     parser.add_argument("--skip-prices", action="store_true")
     parser.add_argument("--rate", type=float, default=DEFAULT_RATE, help="requests per second")
     parser.add_argument(
+        "--forms",
+        default="",
+        help="comma-separated base forms to process, e.g. 'SCHEDULE 13D,SCHEDULE 13G'",
+    )
+    parser.add_argument(
         "--report-only",
         action="store_true",
         help="describe the corpus already stored and fetch nothing",
@@ -387,6 +420,7 @@ def main(argv: Sequence[str]) -> int:
                 limit=args.limit,
                 skip_prices=args.skip_prices,
                 rate=args.rate,
+                forms=[f for f in args.forms.split(",") if f.strip()],
                 user_agent=settings.sec_user_agent,
             )
         )
