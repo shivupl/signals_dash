@@ -412,3 +412,41 @@ and dispatched properly, with a regression test.
 
 Also: the backfill configures logging. Without it a twenty-minute run printed
 nothing and looked hung for eight minutes while working perfectly.
+
+## What the corpus found immediately (2026-09-28)
+
+24 months for the 40 watchlist names: **11,385 events, 2024-09-16 to 2026-09-25,
+98.5% carrying a price**. At threshold 30 that is **2,373 flags over 496 market
+days = 4.8 flags/day** -- comfortably inside the plan's under-20 budget, and the
+first time that number has been measured rather than asserted.
+
+**13D/G had been dead since December 2024.** The report showed every source
+running to last week except 13D/G, which stopped on 2024-12-16. SEC renamed the
+forms: `SC 13G` became `SCHEDULE 13G`. Two failures stacked:
+
+- `browse-edgar`'s `type` is a prefix match, and `SC 13D` does not prefix
+  `SCHEDULE 13D`, so the index poll found nothing under either name;
+- `score_13dg` stripped only the `"SC "` prefix, so a `SCHEDULE 13D` would have
+  scored **zero** even if it had arrived -- indistinguishable from routine noise.
+
+Activist stakes score 85 and are the highest-value signal in the system. Repairing
+it recovered **430 events**, taking 13D/G from 123 to 553 and its flags from 50 to
+254. The stored forms show both spellings coexisting in late 2024, which is why
+both are now polled rather than just the new one.
+
+Two years of history found this in one query. Nothing in the live system could
+have: a source that returns an empty list looks exactly like a quiet week.
+
+**The flag budget is dominated by one score sitting on the threshold.** Of 2,373
+flags, **750 are Form 144 notices scoring exactly 30** -- base 20 plus the insider
+bonus 10, landing precisely on the bar. That is the trap the original plan named
+for 7.01/8.01 ("30 lands exactly on the threshold and will dominate volume"),
+repeated by a source added a day earlier. Dropping `FORM144_INSIDER` to 5, or
+moving the threshold to 31, takes 4.8 flags/day to 3.3. Which of those is right is
+an ablation question, and the corpus can now answer it.
+
+**Calibration evidence worth acting on.** RKLB's CEO noticed a **$465,450,000**
+sale (0.86% of the company) which scored **35** -- below a routine earnings 8-K at
+60. The matching Form 4 for $286M followed two days later, so the 144-then-4
+sequence works; the bands do not. Severe 8-K items are genuinely rare: 12 events
+at 85+ in two years, against 362 earnings releases at 60.
