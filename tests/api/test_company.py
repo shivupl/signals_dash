@@ -239,11 +239,11 @@ def fake_prices():
     """A provider that records what it was asked for and never leaves the process."""
     from datetime import date
 
-    from signals.prices import PriceService
+    from signals.prices import Bar, PriceService
 
     class FakeProvider:
         def __init__(self) -> None:
-            self.closes: dict[str, dict[date, Decimal]] = {}
+            self.closes: dict[str, dict[date, Bar]] = {}
             self.calls: list[str] = []
 
         def quote(self, ticker: str) -> Decimal | None:
@@ -251,7 +251,7 @@ def fake_prices():
 
         def daily_closes(
             self, tickers: list[str] | tuple[str, ...], days: int
-        ) -> dict[str, dict[date, Decimal]]:
+        ) -> dict[str, dict[date, Bar]]:
             self.calls.extend(tickers)
             return {t: self.closes[t] for t in tickers if t in self.closes}
 
@@ -293,7 +293,9 @@ class TestOnDemandPrices:
         from datetime import date
 
         await _member(pg, "NEWCO", "0000000021", "sp500")
-        fake_prices.closes = {"NEWCO": {date(2026, 9, 24): Decimal("10.50")}}
+        from signals.prices import Bar
+
+        fake_prices.closes = {"NEWCO": {date(2026, 9, 24): Bar(Decimal("10.50"))}}
 
         first = await client.get("/api/company/NEWCO")
         assert first.status_code == 200

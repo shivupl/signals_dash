@@ -42,10 +42,15 @@ class SourceClient:
         transport: httpx.AsyncBaseTransport | None = None,
         timeout: float = 30.0,
         http2: bool = True,
+        rate: float | None = None,
     ) -> None:
         if not user_agent.strip():
             raise ValueError("user_agent is required: SEC returns 403 without one")
         self._clock = clock or SystemClock()
+        # A second process does not share this one's token bucket, so anything
+        # running beside the worker -- the historical backfill -- has to be told to
+        # take less than the whole budget or the two together trip SEC's ceiling.
+        self._rate = rate
         self._client = httpx.AsyncClient(
             headers={
                 "User-Agent": user_agent,
@@ -67,7 +72,7 @@ class SourceClient:
 
     def limiter_for(self, host: str) -> HostLimiter:
         if host not in self._limiters:
-            rate = SEC_RATE if host in SEC_HOSTS else DEFAULT_RATE
+            rate = self._rate or (SEC_RATE if host in SEC_HOSTS else DEFAULT_RATE)
             self._limiters[host] = HostLimiter(rate=rate, clock=self._clock)
         return self._limiters[host]
 

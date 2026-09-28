@@ -16,6 +16,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 from typing import Protocol, TypeVar
@@ -28,11 +29,26 @@ QUOTE_TIMEOUT = 8.0
 BULK_TIMEOUT = 60.0
 
 
+@dataclass(frozen=True, slots=True)
+class Bar:
+    """One day, two prices.
+
+    ``close`` is what was printed: the number a flag's ``price_at`` means and the
+    one the UI shows. ``adj_close`` is back-adjusted for splits and dividends, and
+    is the only one safe to compute a return from -- a 10-for-1 split makes a raw
+    series look like a 90% collapse. Neither can be derived from the other after
+    the fact, so both are carried.
+    """
+
+    close: Decimal
+    adj_close: Decimal | None = None
+
+
 class PriceProvider(Protocol):
     """Synchronous on purpose: implementations wrap blocking libraries."""
 
     def quote(self, ticker: str) -> Decimal | None: ...
-    def daily_closes(self, tickers: Sequence[str], days: int) -> dict[str, dict[date, Decimal]]: ...
+    def daily_closes(self, tickers: Sequence[str], days: int) -> dict[str, dict[date, Bar]]: ...
     def next_earnings(self, ticker: str) -> date | None: ...
 
 
@@ -43,11 +59,14 @@ class YFinanceProvider:
         price = yf.Ticker(ticker).fast_info["last_price"]
         return _decimal(price)
 
-    def daily_closes(self, tickers: Sequence[str], days: int) -> dict[str, dict[date, Decimal]]:
+    def daily_closes(self, tickers: Sequence[str], days: int) -> dict[str, dict[date, Bar]]:
         import yfinance as yf
 
         if not tickers:
             return {}
+        # auto_adjust=False keeps Close raw *and* adds Adj Close, so one request
+        # yields both. Fetching the adjusted series separately would double the
+        # calls for a column yfinance already returned.
         frame = yf.download(
             list(tickers),
             period=f"{days}d",
@@ -59,19 +78,25 @@ class YFinanceProvider:
         if frame is None or frame.empty:
             return {}
         closes = frame["Close"]
-        out: dict[str, dict[date, Decimal]] = {}
+        levels = frame.columns.get_level_values(0) if frame.columns.nlevels > 1 else frame.columns
+        adjusted = frame["Adj Close"] if "Adj Close" in set(levels) else None
+        out: dict[str, dict[date, Bar]] = {}
         # A single ticker comes back as a Series, several as a DataFrame.
         columns = [tickers[0]] if getattr(closes, "ndim", 2) == 1 else list(closes.columns)
         for ticker in columns:
             series = closes if getattr(closes, "ndim", 2) == 1 else closes[ticker]
-            points: dict[date, Decimal] = {}
+            adj_series = None
+            if adjusted is not None:
+                adj_series = adjusted if getattr(adjusted, "ndim", 2) == 1 else adjusted[ticker]
+            points: dict[date, Bar] = {}
             for stamp, value in series.items():
                 close = _decimal(value)
-                if close is not None:
-                    # The index date is already the market date in ET -- never
-                    # derive it from a UTC timestamp, which is off by one for
-                    # anything after hours.
-                    points[stamp.date()] = close
+                if close is None:
+                    continue
+                adj = _decimal(adj_series.get(stamp)) if adj_series is not None else None
+                # The index date is already the market date in ET -- never derive
+                # it from a UTC timestamp, which is off by one after hours.
+                points[stamp.date()] = Bar(close=close, adj_close=adj)
             if points:
                 out[str(ticker)] = points
         return out
@@ -96,7 +121,7 @@ class PriceService:
 
     async def daily_closes(
         self, tickers: Sequence[str], days: int = 10
-    ) -> dict[str, dict[date, Decimal]]:
+    ) -> dict[str, dict[date, Bar]]:
         result = await self._guard(
             self._provider.daily_closes, tickers, days, limit=BULK_TIMEOUT
         )

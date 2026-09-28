@@ -64,9 +64,13 @@ STAMP_PRICE_AT: Final[str] = """
 update event set price_at = $2 where id = $1 and price_at is null
 """
 
+# adj_close is coalesced rather than overwritten: a caller that only knows the raw
+# close must not erase an adjusted one already stored.
 UPSERT_PRICE_DAILY: Final[str] = """
-insert into price_daily (company_id, d, close) values ($1, $2, $3)
-on conflict (company_id, d) do update set close = excluded.close
+insert into price_daily (company_id, d, close, adj_close) values ($1, $2, $3, $4)
+on conflict (company_id, d) do update set
+  close = excluded.close,
+  adj_close = coalesce(excluded.adj_close, price_daily.adj_close)
 """
 
 # The close on an event's own market date, or the nearest one before it (a filing

@@ -16,7 +16,7 @@ from signals.clock import MarketCalendar
 from signals.models import CompanyKey, NormalizedEvent
 from signals.pipeline.price_loop import refresh_earnings, refresh_prices, run_price_loop
 from signals.pipeline.process import Processor
-from signals.prices import PriceService
+from signals.prices import Bar, PriceService
 from signals.resolve.resolver import Resolver
 from signals.store.base import FeedFilter
 from signals.store.pg import PgStore
@@ -40,11 +40,14 @@ class FakeProvider:
             raise RuntimeError("yahoo changed something again")
         return Decimal(self.price) if self.price else None
 
-    def daily_closes(self, tickers: Sequence[str], days: int) -> dict[str, dict[date, Decimal]]:
+    def daily_closes(self, tickers: Sequence[str], days: int) -> dict[str, dict[date, Bar]]:
         if self.fail:
             raise RuntimeError("down")
         return {
-            t: {date(2026, 9, 10): Decimal("60.00"), date(2026, 9, 17): Decimal("66.00")}
+            t: {
+                date(2026, 9, 10): Bar(Decimal("60.00"), Decimal("59.50")),
+                date(2026, 9, 17): Bar(Decimal("66.00"), Decimal("65.40")),
+            }
             for t in tickers
         }
 
@@ -60,10 +63,11 @@ class TestPriceService:
         assert await PriceService(FakeProvider(fail=True)).quote("RKLB") is None
 
     async def test_a_hung_provider_is_cut_off(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """None is the whole proof: left alone, this provider returns 63.55 after
+        sleeping. Asserting the elapsed time as well measured the machine, and CI
+        runners stall for longer than any budget worth setting."""
         monkeypatch.setattr(prices_module, "QUOTE_TIMEOUT", 0.05)
-        started = time.monotonic()
         assert await PriceService(FakeProvider(delay=0.5)).quote("RKLB") is None
-        assert time.monotonic() - started < 0.4
 
     async def test_bulk_failure_is_an_empty_result(self) -> None:
         assert await PriceService(FakeProvider(fail=True)).daily_closes(["RKLB"]) == {}
@@ -123,9 +127,18 @@ class TestStamping:
         assert [m.type for m in bus.published] == ["event.new", "event.updated"]
 
     async def test_the_flag_goes_out_before_the_price_is_even_requested(self, rig) -> None:
+        """Stated as an ordering, not a stopwatch.
+
+        This used to assert that `process` returned inside 250ms against a provider
+        that slept 300. That measures the machine: on a loaded laptop the same
+        correct code took 3.3s, and a shared CI runner would flake the same way. So
+        the price is made slow enough (2s) that the assertions below can only hold
+        if publishing genuinely does not wait for it -- a slower machine now makes
+        this test more reliable rather than less.
+        """
         store, _ = rig
         bus = MemoryBus()
-        provider = FakeProvider(delay=0.3)
+        provider = FakeProvider(delay=2.0)
         processor = Processor(
             store,
             Resolver(store),
@@ -134,11 +147,14 @@ class TestStamping:
             clock=FakeClock(NOW),
             prices=PriceService(provider),
         )
-        started = time.monotonic()
         await processor.process(flag())
-        assert time.monotonic() - started < 0.25, "the flag waited on the price"
-        assert [m.type for m in bus.published] == ["event.new"]
+
+        assert [m.type for m in bus.published] == ["event.new"], "the flag was not published first"
+        row = (await store.feed(FeedFilter()))[0]
+        assert row.price_at is None, "the flag waited on the price"
+
         await processor.drain()
+        assert (await store.feed(FeedFilter()))[0].price_at == Decimal("63.55")
 
     async def test_a_dead_price_source_costs_a_blank_and_nothing_else(self, rig) -> None:
         store, _ = rig

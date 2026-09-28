@@ -94,8 +94,8 @@ async def ensure_prices(
     if service is None:
         return prices
     closes = await service.daily_closes([ticker], days=PRICE_HISTORY_DAYS)
-    for day, close in (closes.get(ticker) or {}).items():
-        await store.upsert_price_daily(company_id, day, close)
+    for day, bar in (closes.get(ticker) or {}).items():
+        await store.upsert_price_daily(company_id, day, bar.close, bar.adj_close)
     return await store.company_prices(company_id, PRICE_HISTORY_DAYS)
 
 

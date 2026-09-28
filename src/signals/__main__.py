@@ -6,7 +6,7 @@ import asyncio
 import os
 import sys
 
-COMMANDS = ("worker", "api", "migrate", "seed", "replay", "rehydrate")
+COMMANDS = ("worker", "api", "migrate", "seed", "replay", "rehydrate", "backfill")
 
 
 def _dsn() -> str:
@@ -143,6 +143,10 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_replay(args[1:])
     if command == "rehydrate":
         return cmd_rehydrate()
+    if command == "backfill":
+        from .backfill import main as backfill_main
+
+        return backfill_main(args[1:])
     if command == "api":
         return cmd_api()
     if command == "worker":

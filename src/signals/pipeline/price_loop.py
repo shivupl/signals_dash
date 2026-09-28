@@ -42,8 +42,8 @@ async def refresh_prices(store: Store, prices: PriceService) -> int:
         company = by_ticker.get(ticker)
         if company is None:
             continue
-        for day, close in points.items():
-            await store.upsert_price_daily(company.id, day, close)
+        for day, bar in points.items():
+            await store.upsert_price_daily(company.id, day, bar.close, bar.adj_close)
             written += 1
     return written
 

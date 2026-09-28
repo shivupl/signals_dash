@@ -277,8 +277,10 @@ class PgStore:
     async def count_unresolved(self) -> int:
         return int(await self._pool.fetchval(q.COUNT_UNRESOLVED) or 0)
 
-    async def upsert_price_daily(self, company_id: int, d: date, close: Decimal) -> None:
-        await self._pool.execute(q.UPSERT_PRICE_DAILY, company_id, d, close)
+    async def upsert_price_daily(
+        self, company_id: int, d: date, close: Decimal, adj_close: Decimal | None = None
+    ) -> None:
+        await self._pool.execute(q.UPSERT_PRICE_DAILY, company_id, d, close, adj_close)
 
     async def close_on_or_before(self, company_id: int, d: date) -> Decimal | None:
         value = await self._pool.fetchval(q.CLOSE_ON_OR_BEFORE, company_id, d)
