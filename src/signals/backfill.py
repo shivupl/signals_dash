@@ -274,28 +274,87 @@ def report(progress: Progress) -> str:
     return "\n".join(lines)
 
 
-def score_distribution(rows: Sequence[tuple[int, int]], threshold: int) -> str:
-    """Score bands and what they would have meant, so the corpus is legible.
+#: Score bands for the corpus report. Chosen to fall on the thresholds that matter:
+#: 0 is recorded-only, 30 is the watchlist's bar, 50 the index view's, 85 rule-only.
+BANDS: tuple[tuple[int, int], ...] = (
+    (0, 0),
+    (1, 19),
+    (20, 29),
+    (30, 49),
+    (50, 84),
+    (85, 100),
+)
 
-    The question this answers is the one the threshold was guessed against: how
-    many flags a day would history have produced at the setting in use.
+
+def corpus_report(rows: Sequence[dict[str, Any]], threshold: int) -> str:
+    """What the corpus is, and what the threshold would have meant against it.
+
+    ``rows`` is one record per (source, score) from ``store.corpus_shape``. The
+    number worth having is the last line: flags per market day at the threshold
+    actually in use, measured rather than guessed.
     """
-    bands = [(0, 0), (1, 19), (20, 29), (30, 44), (45, 59), (60, 84), (85, 100)]
-    total = sum(count for _score, count in rows)
-    lines = [f"score bands (n={total}):"]
-    for low, high in bands:
-        count = sum(c for score, c in rows if low <= score <= high)
+    if not rows:
+        return "corpus is empty"
+
+    total = sum(int(r["events"]) for r in rows)
+    priced = sum(int(r["priced"]) for r in rows)
+    earliest = min(r["earliest"] for r in rows)
+    latest = max(r["latest"] for r in rows)
+    days = max((int(r["days"]) for r in rows), default=0)
+    lines = [
+        "",
+        f"events          {total}",
+        f"coverage        {earliest} to {latest}",
+        f"with price_at   {priced} ({priced / total * 100:.1f}%)",
+        "",
+        "per source:",
+    ]
+
+    by_source: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        by_source.setdefault(str(row["source"]), []).append(row)
+    for source, group in sorted(by_source.items()):
+        count = sum(int(r["events"]) for r in group)
+        flags = sum(int(r["events"]) for r in group if int(r["score"]) >= threshold)
+        lines.append(
+            f"  {source:14} {count:6}  flags {flags:5}"
+            f"  {min(r['earliest'] for r in group)} to {max(r['latest'] for r in group)}"
+        )
+
+    lines += ["", "score bands:"]
+    for low, high in BANDS:
+        count = sum(int(r["events"]) for r in rows if low <= int(r["score"]) <= high)
         label = f"{low}" if low == high else f"{low}-{high}"
-        share = f"{count / total * 100:5.1f}%" if total else "  -  "
-        flag = " <- flags" if low >= threshold else ""
-        lines.append(f"  {label:>7} {count:6}  {share}{flag}")
+        marker = " <- flagged" if low >= threshold else ""
+        lines.append(f"  {label:>7} {count:6}  {count / total * 100:5.1f}%{marker}")
+
+    flags = sum(int(r["events"]) for r in rows if int(r["score"]) >= threshold)
+    # Distinct market days seen, not calendar days: weekends file nothing and would
+    # flatter the average.
+    per_day = flags / days if days else 0.0
+    lines += [
+        "",
+        f"at threshold {threshold}: {flags} flags over {days} market days"
+        f" = {per_day:.1f} flags/day",
+    ]
     return "\n".join(lines)
 
 
 def main(argv: Sequence[str]) -> int:
     import argparse
+    import logging as logging_module
 
     from .config import Settings
+
+    # A backfill runs for tens of minutes. Without this its progress logs go
+    # nowhere -- the first long run looked hung for eight minutes while it was
+    # working fine, and "is it stuck or slow" is not a question to leave open.
+    logging_module.basicConfig(
+        level=logging_module.INFO,
+        format="%(asctime)s %(levelname)-7s %(name)s %(message)s",
+    )
+    logging_module.getLogger("httpx").setLevel(logging_module.WARNING)
+    logging_module.getLogger("yfinance").setLevel(logging_module.ERROR)
 
     parser = argparse.ArgumentParser(description="Load filing history into the database.")
     parser.add_argument("--months", type=int, default=24)
@@ -308,20 +367,41 @@ def main(argv: Sequence[str]) -> int:
     parser.add_argument("--limit", type=int, default=None, help="first N companies only")
     parser.add_argument("--skip-prices", action="store_true")
     parser.add_argument("--rate", type=float, default=DEFAULT_RATE, help="requests per second")
+    parser.add_argument(
+        "--report-only",
+        action="store_true",
+        help="describe the corpus already stored and fetch nothing",
+    )
     args = parser.parse_args(argv)
 
-    settings = Settings.from_env()
-    progress = asyncio.run(
-        backfill(
-            settings.database_url,
-            months=args.months,
-            universe=None if args.universe == "all" else args.universe,
-            tickers=[t for t in args.tickers.split(",") if t.strip()],
-            limit=args.limit,
-            skip_prices=args.skip_prices,
-            rate=args.rate,
-            user_agent=settings.sec_user_agent,
+    settings = Settings.from_env(require_sec_user_agent=not args.report_only)
+    universe = None if args.universe == "all" else args.universe
+
+    if not args.report_only:
+        progress = asyncio.run(
+            backfill(
+                settings.database_url,
+                months=args.months,
+                universe=universe,
+                tickers=[t for t in args.tickers.split(",") if t.strip()],
+                limit=args.limit,
+                skip_prices=args.skip_prices,
+                rate=args.rate,
+                user_agent=settings.sec_user_agent,
+            )
         )
-    )
-    print(report(progress))
+        print(report(progress))
+
+    print(asyncio.run(_describe(settings.database_url, universe)))
     return 0
+
+
+async def _describe(dsn: str, universe: str | None) -> str:
+    from .store.pg import PgStore
+
+    store = await PgStore.connect(dsn)
+    try:
+        threshold = int(await store.get_setting("flag_threshold") or 30)
+        return corpus_report(await store.corpus_shape(universe), threshold)
+    finally:
+        await store.close()

@@ -1,4 +1,4 @@
-.PHONY: awake help up down logs test test-unit test-pg lint fmt typecheck layers migrate seed replay fixtures web psql redis shell sp500
+.PHONY: awake help up down logs test test-unit test-pg lint fmt typecheck layers migrate seed replay fixtures web psql redis shell sp500 backfill corpus
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-12s %s\n",$$1,$$2}'
@@ -38,6 +38,10 @@ fixtures:   ## Re-capture test fixtures from the live network (run by hand)
 	docker compose run --rm worker python scripts/capture_fixtures.py --allow-network
 sp500:      ## Refresh config/sp500.yml from the published index list (by hand)
 	docker compose run --rm worker python scripts/refresh_sp500.py --allow-network
+backfill:   ## Load filing history for the watchlist (24 months; takes a while)
+	docker compose run --rm worker python -m signals backfill --universe core --months 24
+corpus:     ## Describe the stored corpus: coverage, score bands, flags/day
+	docker compose run --rm worker python -m signals backfill --report-only --universe all
 
 psql:       ## Open a psql shell
 	docker compose exec postgres psql -U postgres -d signals

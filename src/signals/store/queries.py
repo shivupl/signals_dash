@@ -374,3 +374,23 @@ order by 1 desc, 2
 """
 
 COUNT_UNRESOLVED: Final[str] = "select count(*) as open from unresolved where not resolved"
+
+# What the corpus looks like: one row per (source, score), plus the market days it
+# spans. The point is to answer "how many flags a day would this threshold have
+# produced" against history instead of against a guess.
+CORPUS_SHAPE: Final[str] = """
+select e.source,
+       e.score,
+       count(*) as events,
+       min((e.occurred_at at time zone 'America/New_York')::date) as earliest,
+       max((e.occurred_at at time zone 'America/New_York')::date) as latest,
+       count(distinct (e.occurred_at at time zone 'America/New_York')::date) as days,
+       count(e.price_at) as priced
+from event e
+where e.source <> 'system'
+  and ($1::text is null or exists (
+        select 1 from universe_member m
+        where m.company_id = e.company_id and m.universe = $1))
+group by e.source, e.score
+order by e.source, e.score
+"""

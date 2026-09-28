@@ -277,6 +277,10 @@ class PgStore:
     async def count_unresolved(self) -> int:
         return int(await self._pool.fetchval(q.COUNT_UNRESOLVED) or 0)
 
+    async def corpus_shape(self, universe: str | None = None) -> list[dict[str, Any]]:
+        rows = await self._pool.fetch(q.CORPUS_SHAPE, universe)
+        return [dict(r) for r in rows]
+
     async def upsert_price_daily(
         self, company_id: int, d: date, close: Decimal, adj_close: Decimal | None = None
     ) -> None:

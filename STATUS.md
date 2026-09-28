@@ -360,3 +360,55 @@ Generalising the promoter to a second source is more than this earns.
 Verified locally by driving the real adapter over the captured fixtures: Rubrik's
 CEO noticing $56.9M scored 45, Cerebras' $24.8M scored 35 because it is plan-based,
 and a small plan sale and a family trust both scored 20.
+
+## Backfill and CI (2026-09-28)
+
+**CI.** Five gates on every push in GitHub Actions: ruff, `mypy --strict`, the
+import-linter contracts, the full pytest suite against a Postgres service, and
+`tsc` through the web build. Both jobs were rehearsed in throwaway containers
+first -- fresh dependency resolution, no `.env`, no warm volumes -- because the
+point is to catch what only a clean machine sees. That rehearsal is also how the
+newer mypy and pytest majors got checked before the first run.
+
+Two tests had to be rewritten to live in CI. Both asserted wall-clock budgets: one
+expected `process()` to return inside 250ms against a provider sleeping 300ms, and
+on a loaded laptop the same correct code took 3.3 seconds. They now assert
+ordering -- the flag is published and the price is still NULL -- so a slow machine
+makes them *more* reliable rather than flaky. A flaky suite would have destroyed
+the value of the signal on day one.
+
+**Backfill.** `python -m signals backfill` loads months of filing history so the
+scoring constants can be measured instead of argued about. It drives the live
+reconciliation adapter rather than reimplementing the walk, so a backfilled event
+is indistinguishable from one caught live and dedupes against it. Older
+submission shards are fetched only when `filings.recent` (capped at 1,000 filings)
+does not reach the window.
+
+**Prices load before filings, and that ordering is load-bearing.** `price_at` for
+an event older than half an hour comes from `close_on_or_before` -- the close of its
+own market date. Filings first would leave every historical flag with a NULL price,
+which is the one number the whole exercise depends on. Verified: all 34 events in
+the first trial run carried a price.
+
+**Splits are handled, not documented around.** `price_daily.adj_close` now sits
+beside `close`, from the same yfinance call (`auto_adjust=False` returns both).
+Raw for "what did it cost", adjusted for "what did it return" -- a return computed
+across a 10-for-1 split is wrong by the split ratio.
+
+**Survivorship is a real limitation and is not fixed.** `company` is seeded from
+`company_tickers.json`, which lists today's filers with tickers, so anything
+delisted or acquired before that snapshot was never in the table and cannot appear
+in the corpus. The distinction that matters: this does *not* bias a materiality
+study -- whether a 4.02 deserved a flag has nothing to do with the company's later
+fate -- but it biases any forward-return study upward, because the companies that
+died are missing. Point-in-time index membership is recoverable from the
+constituents file's own git history if that ever matters enough to build.
+
+**A bug the backfill found.** Adding 144 to the swept forms never added its
+hydration, so the sweep handed a document-less payload to the Form 4 normalizer and
+raised `KeyError` -- breaking reconciliation for any watched company that filed a
+144. It was live on the server for a day and silent until it happened. Now hydrated
+and dispatched properly, with a regression test.
+
+Also: the backfill configures logging. Without it a twenty-minute run printed
+nothing and looked hung for eight minutes while working perfectly.
