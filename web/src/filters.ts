@@ -29,7 +29,11 @@ export const DEFAULTS: Filters = {
   categories: [],
   categoriesExclude: false,
   minScore: 30,
-  range: "",
+  // Seven days, not all time. Once the database holds two years of backfilled
+  // history, "no range" makes the header report a cumulative flag count -- 1,655
+  // where the day's answer was 5 -- and the feed's row limit starts cutting off
+  // the recent end. "All" is still one click away, and writes range=all.
+  range: "7d",
   since: "",
   until: "",
   system: false,
@@ -41,7 +45,10 @@ const list = (value: string | null): string[] =>
 export function parseFilters(search: string): Filters {
   const q = new URLSearchParams(search);
   const score = Number(q.get("min"));
-  const range = (q.get("range") ?? "") as DateRange;
+  // Absent means the default window; "all" is how all-time is said out loud, since
+  // an empty string in a URL is indistinguishable from an absent one.
+  const raw = q.get("range");
+  const range = (raw === null ? DEFAULTS.range : raw === "all" ? "" : raw) as DateRange;
   return {
     universe: q.get("universe") === "sp500" ? "sp500" : "core",
     tickers: list(q.get("ticker")).map((t) => t.toUpperCase()),
@@ -65,7 +72,9 @@ export function toSearch(f: Filters): string {
   if (f.categories.length) q.set("category", f.categories.join(","));
   if (f.categoriesExclude) q.set("exclude", "1");
   if (f.minScore !== DEFAULTS.minScore) q.set("min", String(f.minScore));
-  if (f.range) q.set("range", f.range);
+  // All-time is a choice and has to survive a reload, so it is written as
+  // range=all rather than omitted -- omitting it would read back as the default.
+  if (f.range !== DEFAULTS.range) q.set("range", f.range || "all");
   if (f.range === "custom") {
     if (f.since) q.set("since", f.since);
     if (f.until) q.set("until", f.until);

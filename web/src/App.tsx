@@ -20,7 +20,7 @@ import { SettingsPanel } from "./components/SettingsPanel";
 import { StatusStrip } from "./components/StatusStrip";
 import { UniverseSwitch } from "./components/UniverseSwitch";
 import { WatchlistRail } from "./components/WatchlistRail";
-import { universeDefaults, useFilters } from "./filters";
+import { DEFAULTS, universeDefaults, useFilters } from "./filters";
 import { companyFromPath, onInternalClick, useLocation } from "./router";
 
 const EMPTY_META: Meta = { categories: [], sources: [] };
@@ -84,7 +84,10 @@ export default function App() {
   );
 
   const today = marketDay(new Date());
-  const narrowed = filters.tickers.length > 0 || filters.range !== "";
+  // Narrowed means narrowed *past the default*. The default window and the rail
+  // both cover a week, so they agree and the count needs no qualifier; a ticker
+  // filter or a different range is what makes it the view's own number.
+  const narrowed = filters.tickers.length > 0 || filters.range !== DEFAULTS.range;
   // Green only when flags are being pushed. Amber still works, but by polling.
   const dotClass = error ? "err" : live ? "" : "stale";
   const routine = total - flags - (filters.system ? events.filter((e) => e.source === "system").length : 0);
