@@ -307,7 +307,11 @@ a.headline:hover { text-decoration: underline; text-decoration-color: var(--ink-
 .company h3 .count { color: var(--ink-soft); font-weight: 400; margin-left: 6px; font-size: 12px; }
 .feed.flat { border-right: 0; }
 .company .state { border-right: 0; padding: 18px; }
-.callout { margin: 0 18px 10px; padding: 9px 12px; border-left: 3px solid var(--high); background: #1a1813; font-size: 13.5px; color: var(--ink-mid); }
+/* Advisory note, not a slab. Every other divider here is a hairline, and the one
+   coloured bar in the UI is the feed row's tier accent, which encodes score. So
+   this carries its emphasis in the number rather than in a border. */
+.callout { margin: 0 18px 10px; padding: 9px 12px; border: 1px solid var(--rule); border-radius: 3px; background: #1a1813; font-size: 13.5px; color: var(--ink-mid); }
+.callout b { color: var(--high); font-weight: 500; }
 .help { margin: 0 18px 10px; font-size: 13px; color: var(--ink-soft); max-width: 70ch; }
 
 .timeline { padding: 10px 18px 4px; }
