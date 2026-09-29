@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -276,6 +276,14 @@ class PgStore:
 
     async def count_unresolved(self) -> int:
         return int(await self._pool.fetchval(q.COUNT_UNRESOLVED) or 0)
+
+    async def source_volume(self, since: datetime) -> list[dict[str, Any]]:
+        rows = await self._pool.fetch(q.SOURCE_VOLUME, since)
+        return [dict(r) for r in rows]
+
+    async def all_events(self, sources: tuple[str, ...] | Sequence[str] = ()) -> list[EventRow]:
+        rows = await self._pool.fetch(q.ALL_EVENTS, list(sources) or None)
+        return [_row_to_event(r) for r in rows]
 
     async def corpus_shape(self, universe: str | None = None) -> list[dict[str, Any]]:
         rows = await self._pool.fetch(q.CORPUS_SHAPE, universe)

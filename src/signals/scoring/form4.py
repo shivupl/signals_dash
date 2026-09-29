@@ -30,6 +30,11 @@ from .tables import (
     FORM4_LARGE_STAKE,
     FORM4_LARGE_STAKE_FRACTION,
     FORM4_PLAN_10B5_1,
+    FORM4_SALE_HUGE,
+    FORM4_SALE_HUGE_THRESHOLD,
+    FORM4_SALE_LARGE,
+    FORM4_SALE_LARGE_THRESHOLD,
+    FORM4_SALE_PLAN_10B5_1,
     FORM4_SENIOR_OFFICER,
 )
 
@@ -51,6 +56,8 @@ class Form4Facts:
     is_open_market_purchase: bool = False
     purchase_shares: float = 0.0
     purchase_value: float = 0.0
+    #: Non-derivative code-S only, so grants and tax withholding are not in here.
+    sale_value: float = 0.0
     shares_after: float | None = None
     officer_title: str | None = None
     is_officer: bool = False
@@ -63,6 +70,7 @@ class Form4Facts:
             is_open_market_purchase=bool(payload.get("is_open_market_purchase")),
             purchase_shares=float(payload.get("purchase_shares") or 0.0),
             purchase_value=float(payload.get("purchase_value") or 0.0),
+            sale_value=float(payload.get("sale_value") or 0.0),
             shares_after=(
                 float(payload["shares_after"])
                 if payload.get("shares_after") is not None
@@ -97,11 +105,33 @@ class Form4Facts:
         return self.purchase_shares > FORM4_LARGE_STAKE_FRACTION * self.shares_after
 
 
+def score_sale(facts: Form4Facts) -> Score:
+    """Only the tail of the sale distribution scores.
+
+    Below the bracket this returns zero, which is the honest answer for the median
+    $1.1M sale: it says nothing a reader could act on. Above it, the innocent
+    explanations stop fitting.
+    """
+    if facts.sale_value <= FORM4_SALE_LARGE_THRESHOLD:
+        return Score.zero()
+
+    if facts.sale_value > FORM4_SALE_HUGE_THRESHOLD:
+        parts = {"sale_huge": FORM4_SALE_HUGE}
+    else:
+        parts = {"sale_large": FORM4_SALE_LARGE}
+    if facts.plan_10b5_1:
+        parts["plan_10b5_1"] = FORM4_SALE_PLAN_10B5_1
+    return Score.of(parts)
+
+
 def score_form4(facts: Form4Facts, *, cluster_insiders: int = 1) -> Score:
     """Score a filing. ``cluster_insiders`` is distinct buyers in the window."""
     if not facts.is_open_market_purchase:
-        # Sales, grants, exercises and tax withholding all land here.
-        return Score.zero()
+        # Grants, exercises and tax withholding score nothing; a sale scores only
+        # if it is large enough that "I needed the money" stops being plausible.
+        # No cluster bonus here on purpose -- a cluster is several insiders
+        # *buying*, and promotion is scoped to form4_buy.
+        return score_sale(facts)
 
     parts: dict[str, int] = {"base": FORM4_BASE}
 

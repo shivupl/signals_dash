@@ -13,6 +13,16 @@ dozing that produced nine alarms for what was one fact.
 this process's monotonic clock did not, the machine was suspended. That is
 recorded once, as what it is, and the per-source alarms are not raised for a gap
 the sources had nothing to do with.
+
+**Responding is not the same as working.** The staleness check above asks whether
+an adapter completed a poll. 13D/G passed that check for nine months while finding
+nothing at all, because SEC had renamed the form and the query it was sending
+matched no filings -- healthy by every measure the system had, and completely dead.
+So there is a second check that asks a different question: is this source still
+producing events at anything like its historical rate? A source that normally
+yields twelve a week and has yielded none in a fortnight is broken, whatever its
+poll log says. That check needs history to compare against, which is why it could
+only be built after the backfill.
 """
 
 from __future__ import annotations
@@ -20,7 +30,8 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import Any
 
 from ..clock import Clock, MarketCalendar
 from ..models import CompanyKey, NormalizedEvent
@@ -32,6 +43,16 @@ log = logging.getLogger(__name__)
 
 STALE_AFTER_MINUTES = 30.0
 CHECK_EVERY = 60.0
+
+#: How much recent silence counts as a drought. Long enough that an ordinary quiet
+#: stretch -- a holiday week, a slow fortnight for Schedules -- does not trip it.
+DROUGHT_DAYS = 14
+#: Only sources with a real history are judged this way. Below this weekly rate
+#: the absence of events says nothing: halts genuinely go weeks without one, and
+#: for a watched company they are rarer still.
+DROUGHT_MIN_PER_WEEK = 3.0
+#: Volume moves slowly, and the query walks the whole event table.
+VOLUME_CHECK_EVERY_MINUTES = 180.0
 #: Wall clock running this far ahead of the process clock between two checks
 #: means the host was suspended in between.
 SUSPENSION_SLACK_SECONDS = 90.0
@@ -62,6 +83,50 @@ class Outage:
     external_id: str
 
 
+@dataclass(frozen=True, slots=True)
+class Drought:
+    """A source that still answers but has stopped producing."""
+
+    source: str
+    per_week: float
+    days: int
+
+    @property
+    def external_id(self) -> str:
+        # One row per source per drought, not per check.
+        return f"drought:{self.source}"
+
+    @property
+    def headline(self) -> str:
+        return f"{self.source} has produced nothing in {self.days} days"
+
+    @property
+    def detail(self) -> str:
+        return (
+            f"system · normally about {self.per_week:g} a week · the source may be "
+            "answering while matching nothing, as 13D/G did when SEC renamed the form"
+        )
+
+
+def droughts(rows: Sequence[dict[str, Any]], days: int) -> list[Drought]:
+    """Sources whose recent output is zero against a historical rate that says
+    otherwise.
+
+    Pure, so the judgement can be tested without a database or a clock. Zero is
+    the only trigger: a source running at half its usual rate is a question, but
+    a source at exactly nothing for a fortnight is an answer.
+    """
+    out: list[Drought] = []
+    for row in rows:
+        per_week = float(row.get("per_week") or 0.0)
+        if per_week < DROUGHT_MIN_PER_WEEK:
+            continue
+        if int(row.get("recent") or 0) > 0:
+            continue
+        out.append(Drought(source=str(row["source"]), per_week=per_week, days=days))
+    return out
+
+
 class Watchdog:
     def __init__(
         self,
@@ -82,6 +147,8 @@ class Watchdog:
         self._baseline = self._started
         self._last_wall = clock.now()
         self._last_mono = clock.monotonic()
+        self._open_droughts: set[str] = set()
+        self._last_volume_check: datetime | None = None
 
     async def check(self) -> list[str]:
         """One pass. Returns the names of adapters whose state changed."""
@@ -111,6 +178,68 @@ class Watchdog:
                 del self._open[name]
                 changed.append(name)
                 await self._clear(outage, now)
+
+        changed.extend(await self.check_volume(now))
+        return changed
+
+    # --- volume: responding, but producing nothing --------------------------
+
+    async def check_volume(self, now: datetime) -> list[str]:
+        """Compare each source's recent output against its own history."""
+        if self._store is None:
+            return []
+        if self._last_volume_check is not None:
+            since_last = (now - self._last_volume_check).total_seconds() / 60.0
+            if since_last < VOLUME_CHECK_EVERY_MINUTES:
+                return []
+        self._last_volume_check = now
+
+        try:
+            rows = await self._store.source_volume(now - timedelta(days=DROUGHT_DAYS))
+        except Exception as exc:  # noqa: BLE001 -- a failed check is not an outage
+            log.warning("watchdog: volume check failed: %s", exc)
+            return []
+
+        found = droughts(rows, DROUGHT_DAYS)
+        changed: list[str] = []
+        for drought in found:
+            if drought.source in self._open_droughts:
+                continue
+            self._open_droughts.add(drought.source)
+            changed.append(drought.source)
+            log.error(
+                "watchdog: %s produced nothing in %d days (normally %.1f/week)",
+                drought.source,
+                drought.days,
+                drought.per_week,
+            )
+            await self._emit(
+                external_id=drought.external_id,
+                event_type="source_drought",
+                occurred_at=now,
+                # Above the flag threshold on purpose: a dead source is the one
+                # failure that makes every empty feed a lie.
+                severity=80,
+                headline=drought.headline,
+                detail=drought.detail,
+                extra={
+                    "adapter": drought.source,
+                    "state": "open",
+                    "per_week": drought.per_week,
+                    "days": drought.days,
+                },
+            )
+
+        recovered = self._open_droughts - {d.source for d in found}
+        for source in sorted(recovered):
+            self._open_droughts.discard(source)
+            changed.append(source)
+            log.info("watchdog: %s is producing again", source)
+            await self._store.update_payload(
+                "system",
+                f"drought:{source}",
+                {"state": "resolved", "headline": f"{source} is producing again"},
+            )
         return changed
 
     # --- host suspension ----------------------------------------------------

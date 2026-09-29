@@ -76,6 +76,26 @@ FORM4_CLUSTER_WINDOW_DAYS: Final[int] = 30
 FORM4_LARGE_DOLLAR_THRESHOLD: Final[float] = 1_000_000.0
 FORM4_LARGE_STAKE_FRACTION: Final[float] = 0.05
 
+# Sales. "Only purchases score" is right about the ordinary case and wrong about
+# the tail: people sell to buy houses and to diversify, but nobody sells a quarter
+# of a billion dollars of their own company for a kitchen.
+#
+# Measured over 3,051 sales in two years of watchlist history:
+#     p50   $1.1M     noise
+#     p90  $21.9M
+#     p96    $50M     108 filings in two years -- about one a week
+#     p99   $217M
+#     max   $1.5B
+# The brackets sit at the top few percent, where the innocent reading runs out.
+FORM4_SALE_LARGE: Final[int] = 45
+FORM4_SALE_HUGE: Final[int] = 60
+FORM4_SALE_LARGE_THRESHOLD: Final[float] = 50_000_000.0     # ~p96
+FORM4_SALE_HUGE_THRESHOLD: Final[float] = 250_000_000.0     # ~p99
+#: A plan discounts a sale without erasing it. Unlike a buy -- where a schedule
+#: removes the signal, because the signal *was* the decision to buy today -- a
+#: nine-figure scheduled sale is still a decision somebody made.
+FORM4_SALE_PLAN_10B5_1: Final[int] = -10
+
 
 # --- Form 144 ---------------------------------------------------------------
 #
@@ -85,11 +105,16 @@ FORM4_LARGE_STAKE_FRACTION: Final[float] = 0.05
 # thresholds (30 for the watchlist, 50 for the index); what earns a flag is size,
 # concentration on a small float, or a crowd heading for the exit.
 FORM144_BASE: Final[int] = 20
-FORM144_INSIDER: Final[int] = 10          # officer, director or 10% holder
+# Was 10, which put a routine insider notice at exactly 30 -- the threshold -- and
+# made 750 of the corpus's 2,373 flags one low-value form. A third of the feed was
+# somebody saying they might sell some stock next month.
+FORM144_INSIDER: Final[int] = 5            # officer, director or 10% holder
 FORM144_LARGE_DOLLAR: Final[int] = 15     # over $10M
 FORM144_CONCENTRATED: Final[int] = 10     # over 1% of shares outstanding
 FORM144_CLUSTER: Final[int] = 25          # 3+ distinct sellers inside 30 days
-FORM144_PLAN_10B5_1: Final[int] = -10     # adopted months ago; calendar, not news
+#: Deepened from -10 so a *scheduled* large notice also falls clear of the bar
+#: rather than landing on it. Sitting exactly on the threshold is the bug.
+FORM144_PLAN_10B5_1: Final[int] = -15      # adopted months ago; calendar, not news
 
 FORM144_LARGE_DOLLAR_THRESHOLD: Final[float] = 10_000_000.0
 FORM144_CONCENTRATED_PERCENT: Final[float] = 1.0

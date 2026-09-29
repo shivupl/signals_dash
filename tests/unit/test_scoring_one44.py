@@ -26,24 +26,28 @@ def facts(**kw: object) -> Form144Facts:
 
 class TestBands:
     def test_a_routine_insider_notice_is_recorded_not_flagged(self) -> None:
-        """Base 20 plus the insider bonus: below both thresholds on purpose."""
-        assert score_144(facts()).total == 30
+        """Base 20 plus the insider bonus: below both thresholds on purpose.
+
+        The bonus was 10 until the corpus showed that putting this case at exactly
+        30 made it a third of every flag in two years.
+        """
+        assert score_144(facts()).total == 25
 
     def test_a_scheduled_sale_scores_lower_still(self) -> None:
         """A 10b5-1 plan was adopted months ago, so today's filing is calendar
         mechanics rather than a decision."""
-        assert score_144(facts(plan_10b5_1=True)).total == 20
+        assert score_144(facts(plan_10b5_1=True)).total == 10
 
     def test_a_large_dollar_sale_flags(self) -> None:
         """The Rubrik CEO's real notice: $56.9M, 0.3% of shares, Officer."""
         score = score_144(facts(value=56_900_000.0, percent_outstanding=0.2988))
-        assert score.total == 45
-        assert score.parts == {"base": 20, "insider": 10, "large_dollar": 15}
+        assert score.total == 40
+        assert score.parts == {"base": 20, "insider": 5, "large_dollar": 15}
 
     def test_concentration_counts_even_when_the_dollars_are_modest(self) -> None:
         """A small float makes a modest sale material. Credit Acceptance: $7.8M
         on a 10.4M share count is 0.14% -- under the bar; 1.5% would not be."""
-        assert score_144(facts(value=2_000_000.0, percent_outstanding=1.5)).total == 40
+        assert score_144(facts(value=2_000_000.0, percent_outstanding=1.5)).total == 35
 
     def test_a_non_insider_seller_is_barely_scored(self) -> None:
         """A family trust or an unaffiliated holder selling is not the signal."""
@@ -51,7 +55,7 @@ class TestBands:
 
     def test_a_cluster_of_sellers_flags_everywhere(self) -> None:
         score = score_144(facts(), cluster_sellers=3)
-        assert score.total == 55
+        assert score.total == 50
         assert score.parts["cluster"] == 25
 
     def test_two_sellers_is_not_a_cluster(self) -> None:
@@ -64,8 +68,8 @@ class TestBands:
         score = score_144(
             facts(value=500_000_000.0, percent_outstanding=40.0), cluster_sellers=9
         )
-        assert score.total == 80
-        assert sum(score.parts.values()) == 80
+        assert score.total == 75
+        assert sum(score.parts.values()) == 75
         assert "clamped" not in score.parts
 
     def test_never_needs_a_model(self) -> None:
@@ -141,3 +145,63 @@ class TestReadability:
         from signals.scoring.one44 import short_relationship
 
         assert short_relationship("Officer") == "Officer"
+
+
+class TestTheThresholdFlood:
+    """750 of 2,373 flags in the corpus were Form 144 notices scoring exactly 30 --
+    base plus the insider bonus, landing precisely on the bar. A third of the feed
+    was one low-value form, which is the trap the plan named for 7.01/8.01 and this
+    source walked straight into.
+
+    The insider bonus drops to 5 so a routine notice is recorded and silent, and
+    the plan discount deepens so a *scheduled* large sale does not sit on the
+    boundary either. Size, concentration and crowds still flag.
+    """
+
+    def test_a_routine_insider_notice_no_longer_flags(self) -> None:
+        assert score_144(facts()).total == 25
+
+    def test_a_scheduled_routine_notice_is_quieter_still(self) -> None:
+        assert score_144(facts(plan_10b5_1=True)).total == 10
+
+    def test_a_large_notice_still_flags(self) -> None:
+        assert score_144(facts(value=56_900_000.0)).total == 40
+
+    def test_a_large_scheduled_notice_does_not_sit_on_the_threshold(self) -> None:
+        """It used to land on exactly 30. A value equal to the bar is the whole
+        problem, so it has to fall clear of it."""
+        score = score_144(facts(value=56_900_000.0, plan_10b5_1=True))
+        assert score.total == 25
+        assert score.total < 30
+
+    def test_concentration_still_flags(self) -> None:
+        assert score_144(facts(percent_outstanding=1.5)).total == 35
+
+    def test_a_cluster_still_flags_loudly(self) -> None:
+        assert score_144(facts(), cluster_sellers=3).total == 50
+
+    def test_no_routine_notice_reaches_the_threshold(self) -> None:
+        """The invariant that matters, stated as the common case rather than as
+        "no combination may equal 30".
+
+        Chasing the latter makes every constant hostage to one threshold value,
+        which is itself a runtime setting. What has to hold is that a notice with
+        nothing remarkable about it -- no size, no concentration, no crowd --
+        stays clear of the bar however the plan and insider flags fall. Those are
+        58% of all notices.
+        """
+        from itertools import product
+
+        for insider, plan in product((True, False), (True, False)):
+            total = score_144(
+                Form144Facts(
+                    value=500_000.0, percent_outstanding=0.05, is_insider=insider, plan_10b5_1=plan
+                )
+            ).total
+            assert total <= 25, (insider, plan, total)
+
+    def test_a_notice_worth_flagging_clears_the_bar_rather_than_sitting_on_it(self) -> None:
+        """Size or concentration has to land above 30, not on it."""
+        assert score_144(facts(value=56_900_000.0)).total >= 35
+        assert score_144(facts(percent_outstanding=1.5)).total >= 35
+        assert score_144(facts(), cluster_sellers=3).total >= 35

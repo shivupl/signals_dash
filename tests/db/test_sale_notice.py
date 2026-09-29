@@ -105,12 +105,16 @@ class TestOneNotice:
         assert row.payload["value"] == 56_900_000.0
 
     async def test_a_large_officer_notice_flags_on_the_watchlist(self, rig) -> None:
-        """$56.9M by an officer: 45, over the watchlist's 30 and under the index's
-        50. Recorded loudly enough to see, quietly enough not to dominate."""
+        """$56.9M by an officer: 40, over the watchlist's 30 and under the index's
+        50. Recorded loudly enough to see, quietly enough not to dominate.
+
+        Was 45 until the corpus showed the insider bonus putting routine notices on
+        exactly the threshold; the bonus dropped and the size bracket carries this.
+        """
         store, ingest, _cid = rig
         await ingest("0001958244-26-000624", "0001685768")
         row = (await store.feed(FeedFilter(min_score=0)))[0]
-        assert row.score == 45
+        assert row.score == 40
         assert row.payload["headline"] == "Planned sale by Bipul Sinha · $56,900,000"
 
     async def test_re_ingesting_the_same_notice_stores_one_row(self, rig) -> None:
@@ -128,7 +132,7 @@ class TestCluster:
 
         rows = sorted(await store.feed(FeedFilter(min_score=0)), key=lambda r: r.external_id)
         assert len(rows) == 3
-        assert [r.score for r in rows] == [45, 45, 70], (
+        assert [r.score for r in rows] == [40, 40, 65], (
             "the third notice sees the crowd; the earlier two keep their scores, "
             "because notices are not retroactively promoted"
         )
@@ -141,7 +145,7 @@ class TestCluster:
         for n in range(3):
             await ingest(f"0001958244-26-00072{n}", "0000000001")
         rows = await store.feed(FeedFilter(min_score=0))
-        assert {r.score for r in rows} == {45}
+        assert {r.score for r in rows} == {40}
 
     async def test_sellers_outside_the_window_do_not_count(self, rig, pg_dsn: str) -> None:
         store, ingest, cid = rig
@@ -166,4 +170,4 @@ class TestCluster:
         await ingest("0001958244-26-000624", "0001685768")
         rows = await store.feed(FeedFilter(min_score=0))
         fresh = [r for r in rows if r.external_id.startswith("0001")]
-        assert fresh[0].score == 45, "a 45-day-old notice is not part of today's crowd"
+        assert fresh[0].score == 40, "a 45-day-old notice is not part of today's crowd"

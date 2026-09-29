@@ -7,6 +7,7 @@ import logging
 
 from ..adapters.edgar_backfill import EdgarBackfillAdapter
 from ..adapters.edgar_index import build_edgar_adapters
+from ..adapters.form_census import FormCensusAdapter
 from ..adapters.halts import HaltsAdapter
 from ..bus.base import Publisher
 from ..bus.redis_bus import RedisPublisher
@@ -93,7 +94,18 @@ async def run_worker(
     # adapter reads as "no filter".
     watched_tickers = await store.watched_tickers() if watched_only else frozenset()
 
-    adapters = [*build_edgar_adapters(), HaltsAdapter(), EdgarBackfillAdapter()]
+    edgar = build_edgar_adapters()
+    # The census's list of claimed forms is assembled from the adapters themselves,
+    # so it cannot drift out of step with what is actually being asked for -- a
+    # hand-kept copy would go stale exactly when it mattered.
+    claimed = sorted({form for a in edgar for form in getattr(a, "accepts", ())})
+    adapters = [
+        *edgar,
+        HaltsAdapter(),
+        EdgarBackfillAdapter(),
+        FormCensusAdapter(claimed),
+    ]
+    log.info("form census watching for renames of: %s", ", ".join(claimed))
     runners = [
         AdapterRunner(
             adapter,

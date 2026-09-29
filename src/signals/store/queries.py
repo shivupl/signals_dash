@@ -375,6 +375,46 @@ order by 1 desc, 2
 
 COUNT_UNRESOLVED: Final[str] = "select count(*) as open from unresolved where not resolved"
 
+# Events per source in a recent window, beside the weekly rate over everything
+# older than it. This is the difference between "quiet" and "broken": 13D/G
+# answered every poll for nine months while matching nothing, because SEC had
+# renamed the form. Responding is not the same as working, and only history knows
+# what working looked like.
+SOURCE_VOLUME: Final[str] = """
+with recent as (
+  select source, count(*) as events
+  from event
+  where source <> 'system' and occurred_at >= $1
+  group by source
+),
+history as (
+  select source,
+         count(*) as events,
+         greatest(extract(epoch from ($1 - min(occurred_at))) / 604800.0, 1.0) as weeks
+  from event
+  where source <> 'system' and occurred_at < $1
+  group by source
+)
+select coalesce(r.source, h.source) as source,
+       coalesce(r.events, 0) as recent,
+       coalesce(h.events, 0) as historical,
+       coalesce(round((h.events / h.weeks)::numeric, 1), 0) as per_week
+from recent r
+full outer join history h on h.source = r.source
+order by 1
+"""
+
+# Every stored event, for a rescore pass. Ordered by id so a long run is
+# resumable by eye and the report reads chronologically.
+ALL_EVENTS: Final[str] = f"""
+select {_EVENT_COLUMNS}
+from event e
+left join company c on c.id = e.company_id
+where ($1::text[] is null or e.source = any($1))
+  and e.source <> 'system'
+order by e.id
+"""
+
 # What the corpus looks like: one row per (source, score), plus the market days it
 # spans. The point is to answer "how many flags a day would this threshold have
 # produced" against history instead of against a guess.

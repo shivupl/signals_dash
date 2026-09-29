@@ -211,3 +211,62 @@ class TestDescribe:
     def test_ordinals(self, n: int, expected: str) -> None:
         headline, _ = describe_form4(buy(), "x", cluster_insiders=n)
         assert headline.startswith(expected)
+
+
+class TestLargeSales:
+    """"Only purchases score" was right about the ordinary case and wrong about
+    the tail.
+
+    People sell to buy houses and to diversify, which is why a sale says so much
+    less than a buy. But the corpus turned up a CEO selling $465M, and that scored
+    zero while a routine quarterly earnings release scored 60. At the top of the
+    distribution the house-purchase reading stops being plausible.
+
+    Brackets come from 3,051 sales in two years of watchlist history: p50 $1.1M,
+    p90 $21.9M, ~p96 $50M, ~p99 $217M, max $1.5B.
+    """
+
+    @staticmethod
+    def sale(value: float, *, plan: bool = False) -> Form4Facts:
+        return Form4Facts(is_open_market_purchase=False, sale_value=value, plan_10b5_1=plan)
+
+    def test_an_ordinary_sale_still_scores_nothing(self) -> None:
+        """The median sale is $1.1M. Flagging those is how the feed dies."""
+        assert score_form4(self.sale(1_130_000)).total == 0
+
+    def test_a_sale_at_the_ninetieth_percentile_still_scores_nothing(self) -> None:
+        assert score_form4(self.sale(21_000_000)).total == 0
+
+    def test_a_fifty_million_sale_flags(self) -> None:
+        score = score_form4(self.sale(60_000_000))
+        assert score.total == 45
+        assert "sale_large" in score.parts
+
+    def test_a_quarter_billion_sale_outranks_an_earnings_release(self) -> None:
+        """The case that prompted this: it must beat a 2.02 at 60."""
+        assert score_form4(self.sale(465_450_000)).total == 60
+
+    def test_the_largest_sale_in_the_corpus_is_not_clamped_oddly(self) -> None:
+        score = score_form4(self.sale(1_512_356_060))
+        assert score.total == 60
+        assert sum(score.parts.values()) == 60
+
+    def test_a_plan_discounts_a_large_sale_without_erasing_it(self) -> None:
+        """The decision was made when the plan was adopted, which is still a
+        decision -- unlike a buy, where a plan removes the signal entirely."""
+        assert score_form4(self.sale(60_000_000, plan=True)).total == 35
+        assert score_form4(self.sale(465_450_000, plan=True)).total == 50
+
+    def test_a_sale_never_earns_a_cluster_bonus(self) -> None:
+        """Cluster means several insiders buying. Promotion is scoped to
+        form4_buy, and the scorer must agree with that on its own."""
+        assert "cluster" not in score_form4(self.sale(60_000_000), cluster_insiders=5).parts
+
+    def test_a_purchase_is_unaffected(self) -> None:
+        facts = Form4Facts(is_open_market_purchase=True, purchase_value=2_000_000.0)
+        assert score_form4(facts).total == 50
+
+    def test_sale_value_is_read_from_the_payload(self) -> None:
+        facts = Form4Facts.from_payload({"sale_value": 60_000_000, "codes": ["S"]})
+        assert facts.sale_value == 60_000_000
+        assert score_form4(facts).total == 45

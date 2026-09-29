@@ -205,3 +205,65 @@ class TestHelpers:
         start = datetime(2026, 9, 15, 5, 0, tzinfo=EASTERN)
         end = datetime(2026, 9, 15, 23, 0, tzinfo=EASTERN)
         assert CAL.ingest_minutes_between(start, end) == 16 * 60
+
+
+class TestDroughts:
+    """"Is it responding" and "is it working" are different questions.
+
+    13D/G answered every poll for nine months while matching nothing, because SEC
+    had renamed the form. Every check the system had said healthy. This is the
+    check that would have caught it -- and it needed the backfill first, because
+    without history there is no such thing as "normally twelve a week".
+    """
+
+    @staticmethod
+    def row(source: str, recent: int, per_week: float) -> dict[str, object]:
+        return {"source": source, "recent": recent, "per_week": per_week, "historical": 500}
+
+    def test_a_busy_source_gone_silent_is_a_drought(self) -> None:
+        from signals.pipeline.watchdog import droughts
+
+        found = droughts([self.row("edgar_13dg", 0, 12.0)], 14)
+        assert [d.source for d in found] == ["edgar_13dg"]
+        assert found[0].per_week == 12.0
+
+    def test_a_source_still_producing_is_not(self) -> None:
+        from signals.pipeline.watchdog import droughts
+
+        assert droughts([self.row("edgar_8k", 40, 12.0)], 14) == []
+
+    def test_one_event_is_enough_to_clear_it(self) -> None:
+        """Zero is the trigger. A source at half its rate is a question, not an
+        answer, and answering questions with alarms is how alarms get ignored."""
+        from signals.pipeline.watchdog import droughts
+
+        assert droughts([self.row("edgar_13dg", 1, 12.0)], 14) == []
+
+    def test_a_genuinely_rare_source_is_never_judged_this_way(self) -> None:
+        """Halts go weeks without one for a forty-name watchlist. Absence there
+        carries no information, so it must not raise an alarm."""
+        from signals.pipeline.watchdog import droughts
+
+        assert droughts([self.row("halts", 0, 0.4)], 14) == []
+
+    def test_a_source_with_no_history_is_not_judged(self) -> None:
+        """A source added yesterday has no normal to fall short of."""
+        from signals.pipeline.watchdog import droughts
+
+        assert droughts([self.row("edgar_144", 0, 0.0)], 14) == []
+
+    def test_the_alarm_says_what_normal_was(self) -> None:
+        from signals.pipeline.watchdog import droughts
+
+        drought = droughts([self.row("edgar_13dg", 0, 12.0)], 14)[0]
+        assert drought.headline == "edgar_13dg has produced nothing in 14 days"
+        assert "about 12 a week" in drought.detail
+        assert drought.external_id == "drought:edgar_13dg", "one row per source, not per check"
+
+    def test_several_dead_sources_are_reported_separately(self) -> None:
+        from signals.pipeline.watchdog import droughts
+
+        found = droughts(
+            [self.row("edgar_13dg", 0, 12.0), self.row("edgar_8k", 0, 20.0)], 14
+        )
+        assert {d.source for d in found} == {"edgar_13dg", "edgar_8k"}

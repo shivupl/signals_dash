@@ -450,3 +450,40 @@ sale (0.86% of the company) which scored **35** -- below a routine earnings 8-K 
 60. The matching Form 4 for $286M followed two days later, so the 144-then-4
 sequence works; the bands do not. Severe 8-K items are genuinely rare: 12 events
 at 85+ in two years, against 362 earnings releases at 60.
+
+## One bug, three times: matching text somebody else controls
+
+Worth naming as a class rather than filing as three anecdotes, because the fix for
+the class is different from the fix for any of them.
+
+| What happened | How it showed up | Cost |
+|---|---|---|
+| `type=4` is a **prefix** match, so it also returned 424B2, 424B3 and 485APOS | Form 4 resolution sat at 42% | Found in an hour, by checking resolution rate against filings seen |
+| A "President" rule matched **"Vice President"** | Senior-officer bonuses inflated | Found while reading real titles in fixtures |
+| `SC 13G` became **`SCHEDULE 13G`** in 2025 | Nothing showed up at all | Nine months |
+
+Every one is our code matching a string that SEC owns and can change without
+telling anyone. The first two were *visible* -- wrong data arrived and looked
+wrong. The third was invisible, because the query returned an empty list, and an
+empty list is indistinguishable from a quiet week. That is the shape to fear.
+
+Three defences now exist, in increasing order of how much they would have helped:
+
+1. **Adapters declare the base forms they accept** and discard the rest after
+   parsing. This handles prefix pollution -- the first bug -- and is why `type=144`
+   does not pull in whatever else starts with those digits.
+2. **The drought check** (`pipeline/watchdog.py`): a source producing nothing for a
+   fortnight, against a historical rate that says it should, raises an alarm at
+   severity 80. This is the general answer to "responding but dead", and it needed
+   the backfill to know what normal looked like.
+3. **The form census** (`adapters/form_census.py`): one request every fifteen
+   minutes to the *unfiltered* index, normalising every form name to its family --
+   `SC 13G` and `SCHEDULE 13G` are both `13G`, `4/A` is `4`. A family we already
+   claim, arriving under a spelling we do not ask for, is a rename in progress.
+   Checked against a live feed while building it: the census sees `SCHEDULE 13D/A`
+   and `SCHEDULE 13G` plainly, which is exactly what nine months of 13D/G polling
+   never saw. It would have turned nine months into a day.
+
+The general lesson, for the next source: when a query returns nothing, that is data
+about the query as much as about the world. Any adapter whose normal output is
+non-zero should have a floor under it.
