@@ -487,3 +487,46 @@ Three defences now exist, in increasing order of how much they would have helped
 The general lesson, for the next source: when a query returns nothing, that is data
 about the query as much as about the world. Any adapter whose normal output is
 non-zero should have a floor under it.
+
+## Recalibration, measured (2026-09-29)
+
+The corpus was built to judge the constants, and then it did. Before and after, over
+the same 11,390 events and 496 market days:
+
+| | flags before | after |
+|---|---|---|
+| Form 144 | 1,300 | **168** |
+| Form 4 | 73 | **136** |
+| 8-K | 747 | 747 |
+| 13D/G | 254 | 254 |
+| **per market day** | **4.8** | **2.6** |
+
+Three changes, each argued from the data rather than from taste.
+
+**Form 144 came off the threshold.** A routine insider notice scored exactly 30 --
+the bar -- so 750 flags were one low-value form. The insider bonus dropped to 5 and
+the plan discount deepened to -15. Size, concentration and crowds still flag; 1,136
+notices went quiet.
+
+**Large sales started scoring**, from the distribution rather than a round number:
+3,051 real sales sit at p50 $1.1M, p90 $21.9M, ~p96 $50M, ~p99 $217M, max $1.5B. So
+over $50M scores 45 and over $250M scores 60, with a -10 plan discount rather than
+the buy side's -30, because a nine-figure scheduled sale is still a decision.
+
+**Then the first cut of that was wrong, and the corpus said so immediately.** The
+new top of the feed was eight consecutive Bezos filings, each a scheduled
+billion-dollar Amazon sale. The large-sale tail is nearly all repeats -- Karp 12
+filings, Bezos 12, Stevens 11, Samueli 7, with the top ten sellers accounting for
+about two thirds of every large sale in two years. That is the Form 144 flood again
+with bigger numbers. So repeats by the same insider inside ninety days are damped 25
+points, which removed 44 flags and left the 64 that begin a run. The top of the list
+is now unplanned sales -- a fund GP at $499M, Rakuten's CEO selling AST at $271M --
+with scheduled programmes ranked beneath them. Two Bezos rows remain, thirteen
+months apart, which is right: a new programme after a year is news again.
+
+What makes this different from the first twenty constants is that each number now
+has a measurement behind it and a command that re-measures it: `make corpus` for the
+distribution, `python -m signals rescore --dry-run` to ask what a change would cost
+before paying for it. The rescore is explicit and never automatic -- ingest never
+rewrites history -- and both paths compute the repeat count with the same function,
+because if they could disagree the corpus would stop being a baseline.
