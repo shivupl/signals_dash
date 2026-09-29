@@ -40,10 +40,27 @@ function join(stats: Stats, sources: Option[]): SourceLine[] {
   return lines;
 }
 
-/** The p50 range across sources that have a measurement. One number for a whole
- *  pipeline would be an average of unlike things; a range is honest and as short. */
+/** Below this many events, a "percentile" is just one filing wearing a hat.
+ *
+ *  Production made the case: 13D/G had a single event that arrived through the
+ *  reconciliation sweep five hours late, and it alone turned the headline into
+ *  "35s–5h 12m" while the three busy sources were all sitting at forty seconds.
+ *  Thin sources stay in the table, where the sample column says how thin. */
+const MIN_SAMPLE = 5;
+
+/** Sources whose measurement is worth putting in the headline. Falls back to
+ *  everything measured rather than to nothing, so a young install still reports. */
+function headline(stats: Stats): SourceLatency[] {
+  const solid = stats.latency.filter((l) => l.events >= MIN_SAMPLE);
+  return solid.length > 0 ? solid : stats.latency;
+}
+
+/** The p50 range across those sources. One number for a whole pipeline would be
+ *  an average of unlike things; a range is honest and as short. */
 function lagRange(stats: Stats): string {
-  const p50s = stats.latency.map((l) => l.p50_seconds).filter((v): v is number => v !== null);
+  const p50s = headline(stats)
+    .map((l) => l.p50_seconds)
+    .filter((v): v is number => v !== null);
   if (p50s.length === 0) return "—";
   const low = Math.min(...p50s);
   const high = Math.max(...p50s);
@@ -51,7 +68,9 @@ function lagRange(stats: Stats): string {
 }
 
 function worstP95(stats: Stats): string {
-  const p95s = stats.latency.map((l) => l.p95_seconds).filter((v): v is number => v !== null);
+  const p95s = headline(stats)
+    .map((l) => l.p95_seconds)
+    .filter((v): v is number => v !== null);
   return p95s.length ? duration(Math.max(...p95s)) : "—";
 }
 
@@ -76,9 +95,12 @@ function Sources({ lines, windowDays }: { lines: SourceLine[]; windowDays: numbe
           </tr>
         </thead>
         <tbody>
-          {lines.map((line) => (
+          {lines.map((line) => {
+            // Too few events for the figures beside them to mean much.
+            const thin = line.latency !== null && line.latency.events < MIN_SAMPLE;
+            return (
             <tr key={line.value} className={line.volume?.quiet ? "quiet-src" : ""}>
-              <td>
+              <td title={thin ? "Too few events for the latency figures to mean much" : undefined}>
                 <span className="dg-name mono">{line.label}</span>
                 {line.volume?.quiet && (
                   <span className="tag high" title="Answering, but producing nothing">
@@ -97,11 +119,12 @@ function Sources({ lines, windowDays }: { lines: SourceLine[]; windowDays: numbe
                 tone={line.volume?.quiet ? "warn" : undefined}
               />
               <Num value={line.volume ? line.volume.per_week.toFixed(1) : "—"} tone="soft" />
-              <Num value={duration(line.latency?.p50_seconds ?? null)} />
+              <Num value={duration(line.latency?.p50_seconds ?? null)} tone={thin ? "soft" : undefined} />
               <Num value={duration(line.latency?.p95_seconds ?? null)} tone="soft" />
               <Num value={line.latency ? String(line.latency.events) : "—"} tone="soft" />
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
       </div>
@@ -253,7 +276,9 @@ export function DiagnosticsBar({
             <Scores threshold={stats.flag_threshold} />
           </div>
           <p className="dg-foot">
-            {stats.latency_note}
+            {stats.latency_note} The headline lag ignores sources with fewer than{" "}
+            {MIN_SAMPLE} measured events, since a percentile over one filing is just that
+            filing; the table above shows them anyway, with the sample they rest on.
             {stats.excluded_from_latency > 0 && (
               <> {stats.excluded_from_latency} events in this window are excluded for that reason.</>
             )}{" "}
