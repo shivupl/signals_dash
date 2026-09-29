@@ -153,6 +153,23 @@ select count(distinct cik) as sellers from (
 ) as sellers
 """
 
+# Large sales this insider already filed inside the window, for the repeat
+# dampener. Keyed on insider CIK and strictly *before* the event being scored, so
+# the first sale of a run scores full and the rest are damped.
+PRIOR_LARGE_SALES: Final[str] = """
+select count(*) from (
+  select distinct e.id
+  from event e, jsonb_array_elements_text(e.payload -> 'insider_ciks') as cik
+  where e.company_id = $1
+    and e.source = 'edgar_form4'
+    and e.event_type <> 'form4_buy'
+    and e.occurred_at >= $2
+    and e.occurred_at < $3
+    and cik = any($4::text[])
+    and coalesce((e.payload ->> 'sale_value')::numeric, 0) > $5
+) as prior
+"""
+
 # Candidates for retroactive promotion. The score_parts guard is what makes
 # re-running promotion free rather than merely harmless.
 EVENTS_MISSING_CLUSTER_BONUS: Final[str] = """

@@ -35,6 +35,7 @@ from .tables import (
     FORM4_SALE_LARGE,
     FORM4_SALE_LARGE_THRESHOLD,
     FORM4_SALE_PLAN_10B5_1,
+    FORM4_SALE_REPEAT,
     FORM4_SENIOR_OFFICER,
 )
 
@@ -105,12 +106,14 @@ class Form4Facts:
         return self.purchase_shares > FORM4_LARGE_STAKE_FRACTION * self.shares_after
 
 
-def score_sale(facts: Form4Facts) -> Score:
-    """Only the tail of the sale distribution scores.
+def score_sale(facts: Form4Facts, *, prior_large_sales: int = 0) -> Score:
+    """Only the tail of the sale distribution scores, and only the first of a run.
 
     Below the bracket this returns zero, which is the honest answer for the median
-    $1.1M sale: it says nothing a reader could act on. Above it, the innocent
-    explanations stop fitting.
+    $1.1M sale: it says nothing a reader could act on. Above it the innocent
+    explanations stop fitting -- but a seller who does this every month is running a
+    programme, and a programme is news once. ``prior_large_sales`` is how many large
+    sales the same insider already filed inside the window.
     """
     if facts.sale_value <= FORM4_SALE_LARGE_THRESHOLD:
         return Score.zero()
@@ -121,17 +124,21 @@ def score_sale(facts: Form4Facts) -> Score:
         parts = {"sale_large": FORM4_SALE_LARGE}
     if facts.plan_10b5_1:
         parts["plan_10b5_1"] = FORM4_SALE_PLAN_10B5_1
+    if prior_large_sales > 0:
+        parts["sale_repeat"] = FORM4_SALE_REPEAT
     return Score.of(parts)
 
 
-def score_form4(facts: Form4Facts, *, cluster_insiders: int = 1) -> Score:
+def score_form4(
+    facts: Form4Facts, *, cluster_insiders: int = 1, prior_large_sales: int = 0
+) -> Score:
     """Score a filing. ``cluster_insiders`` is distinct buyers in the window."""
     if not facts.is_open_market_purchase:
         # Grants, exercises and tax withholding score nothing; a sale scores only
         # if it is large enough that "I needed the money" stops being plausible.
         # No cluster bonus here on purpose -- a cluster is several insiders
         # *buying*, and promotion is scoped to form4_buy.
-        return score_sale(facts)
+        return score_sale(facts, prior_large_sales=prior_large_sales)
 
     parts: dict[str, int] = {"base": FORM4_BASE}
 

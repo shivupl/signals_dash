@@ -22,6 +22,7 @@ and read the pre-promotion score.
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
@@ -31,6 +32,8 @@ from ..scoring.form4 import Form4Facts, score_form4
 from ..scoring.tables import (
     FORM4_CLUSTER_MIN_INSIDERS,
     FORM4_CLUSTER_WINDOW_DAYS,
+    FORM4_SALE_LARGE_THRESHOLD,
+    FORM4_SALE_REPEAT_WINDOW_DAYS,
     FORM144_CLUSTER_WINDOW_DAYS,
 )
 from ..store.base import EventRow, Store
@@ -75,6 +78,25 @@ async def count_cluster_sellers(
     """
     return await store.distinct_144_sellers(
         company_id, now - timedelta(days=FORM144_CLUSTER_WINDOW_DAYS), sellers
+    )
+
+
+async def count_prior_large_sales(
+    store: Store, company_id: int, insider_ciks: Sequence[str], occurred_at: datetime
+) -> int:
+    """Large sales this insider already filed in the window before this one.
+
+    Shared by the ingest path and the rescore pass on purpose: they must agree, or
+    the corpus stops being a baseline and becomes a second opinion. Strictly before
+    ``occurred_at``, so the first sale of a programme scores full and the rest are
+    damped.
+    """
+    return await store.prior_large_sales(
+        company_id,
+        insider_ciks,
+        occurred_at - timedelta(days=FORM4_SALE_REPEAT_WINDOW_DAYS),
+        occurred_at,
+        FORM4_SALE_LARGE_THRESHOLD,
     )
 
 

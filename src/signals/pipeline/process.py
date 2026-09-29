@@ -15,8 +15,14 @@ from ..resolve.resolver import Resolver
 from ..scoring import score_event
 from ..scoring.form4 import Form4Facts, describe_form4, score_form4
 from ..scoring.one44 import Form144Facts, describe_144, score_144
+from ..scoring.tables import FORM4_SALE_LARGE_THRESHOLD
 from ..store.base import Store
-from .promote import Promoter, count_cluster_insiders, count_cluster_sellers
+from .promote import (
+    Promoter,
+    count_cluster_insiders,
+    count_cluster_sellers,
+    count_prior_large_sales,
+)
 
 log = logging.getLogger(__name__)
 
@@ -116,6 +122,17 @@ class Processor:
         # notice is not. Counted at insert only: unlike the buy side there is no
         # retroactive promotion for notices, so an earlier notice keeps the score
         # it was given. STATUS.md records why.
+        # A large sale is news once. A seller filing one every month is running a
+        # programme, and the corpus showed the top ten sellers accounting for two
+        # thirds of every large sale in two years.
+        prior_sales = 0
+        if company is not None and _is_large_sale(event):
+            prior_sales = await count_prior_large_sales(
+                self._store,
+                company.id,
+                [str(c) for c in (event.payload.get("insider_ciks") or [])],
+                event.occurred_at,
+            )
         elif company is not None and _is_sale_notice(event):
             cluster_insiders = await count_cluster_sellers(
                 self._store,
@@ -138,7 +155,7 @@ class Processor:
         resolved = ResolvedEvent(
             normalized=marked,
             company_id=company.id if company else None,
-            score=_score(marked, cluster_insiders),
+            score=_score(marked, cluster_insiders, prior_sales),
         )
 
         if event.event_type == "halt_resume":
@@ -256,7 +273,14 @@ def _is_sale_notice(event: NormalizedEvent) -> bool:
     return event.source == "edgar_144"
 
 
-def _score(event: NormalizedEvent, cluster_insiders: int) -> Score:
+def _is_large_sale(event: NormalizedEvent) -> bool:
+    """A Form 4 sale big enough that the repeat dampener needs a count."""
+    if event.source != "edgar_form4" or event.event_type == "form4_buy":
+        return False
+    return float(event.payload.get("sale_value") or 0.0) > FORM4_SALE_LARGE_THRESHOLD
+
+
+def _score(event: NormalizedEvent, cluster_insiders: int, prior_large_sales: int = 0) -> Score:
     """Form 4 and Form 144 need the cluster count; the rest score from themselves."""
     if _is_sale_notice(event):
         notice = Form144Facts.from_payload(event.payload)
@@ -268,6 +292,13 @@ def _score(event: NormalizedEvent, cluster_insiders: int) -> Score:
         event.payload["detail"] = detail
         event.payload["cluster_sellers"] = cluster_insiders
         return score_144(notice, cluster_sellers=cluster_insiders)
+    if event.source == "edgar_form4" and not event.payload.get("is_open_market_purchase"):
+        # Sales and compensation mechanics. Only the tail scores, and only the
+        # first of a run.
+        event.payload["prior_large_sales"] = prior_large_sales
+        return score_form4(
+            Form4Facts.from_payload(event.payload), prior_large_sales=prior_large_sales
+        )
     if _is_insider_buy(event):
         facts = Form4Facts.from_payload(event.payload)
         score = score_form4(facts, cluster_insiders=cluster_insiders)

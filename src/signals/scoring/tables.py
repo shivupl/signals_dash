@@ -96,6 +96,21 @@ FORM4_SALE_HUGE_THRESHOLD: Final[float] = 250_000_000.0     # ~p99
 #: nine-figure scheduled sale is still a decision somebody made.
 FORM4_SALE_PLAN_10B5_1: Final[int] = -10
 
+#: A selling *programme* is not news twelve times.
+#:
+#: The first cut of the sale brackets put eight Bezos filings at the top of the
+#: feed, each a scheduled Amazon sale around a billion dollars. Across the corpus
+#: the large-sale tail is dominated by repeats: Karp 12 filings, Bezos 12, Stevens
+#: 11, Samueli 7 -- the top ten sellers account for roughly two thirds of every
+#: large sale in two years. Flagging each execution recreates exactly the flood
+#: the Form 144 recalibration removed, only with bigger numbers.
+#:
+#: So the information sits in the *first* large sale by that insider, and repeats
+#: inside the window are damped below the bar unless they are enormous. Same shape
+#: as the repeat-volatility-pause dampener in the halt table, for the same reason.
+FORM4_SALE_REPEAT: Final[int] = -25
+FORM4_SALE_REPEAT_WINDOW_DAYS: Final[int] = 90
+
 
 # --- Form 144 ---------------------------------------------------------------
 #

@@ -270,3 +270,53 @@ class TestLargeSales:
         facts = Form4Facts.from_payload({"sale_value": 60_000_000, "codes": ["S"]})
         assert facts.sale_value == 60_000_000
         assert score_form4(facts).total == 45
+
+
+class TestRepeatSales:
+    """A selling programme is not news twelve times.
+
+    The first cut of the sale brackets put eight Bezos filings at the top of the
+    feed, each a scheduled Amazon sale of around a billion dollars. Across the
+    corpus the tail is nearly all repeats -- Karp 12 filings, Bezos 12, Stevens 11
+    -- so the top ten sellers were about two thirds of every large sale in two
+    years. Flagging each execution is the Form 144 flood again with bigger numbers.
+    """
+
+    @staticmethod
+    def sale(value: float, *, plan: bool = False) -> Form4Facts:
+        return Form4Facts(is_open_market_purchase=False, sale_value=value, plan_10b5_1=plan)
+
+    def test_the_first_large_sale_scores_in_full(self) -> None:
+        assert score_form4(self.sale(60_000_000), prior_large_sales=0).total == 45
+
+    def test_a_repeat_large_sale_falls_below_the_bar(self) -> None:
+        assert score_form4(self.sale(60_000_000), prior_large_sales=1).total == 20
+
+    def test_the_first_huge_sale_still_outranks_an_earnings_release(self) -> None:
+        assert score_form4(self.sale(465_450_000), prior_large_sales=0).total == 60
+
+    def test_a_repeat_huge_sale_is_recorded_but_ranked_low(self) -> None:
+        """Still visible, no longer shouting: 35 is under the index view's bar."""
+        assert score_form4(self.sale(465_450_000), prior_large_sales=1).total == 35
+
+    def test_the_bezos_case_goes_quiet_after_the_first(self) -> None:
+        """A scheduled billion-dollar sale, twelve times in two years. The first is
+        worth knowing; the twelfth is a calendar."""
+        first = score_form4(self.sale(1_512_356_060, plan=True), prior_large_sales=0)
+        later = score_form4(self.sale(1_510_000_000, plan=True), prior_large_sales=11)
+        assert first.total == 50
+        assert later.total == 25, "below the threshold, so it stops interrupting"
+
+    def test_the_dampener_is_named_in_the_parts(self) -> None:
+        parts = score_form4(self.sale(60_000_000), prior_large_sales=3).parts
+        assert parts["sale_repeat"] == -25
+        assert sum(parts.values()) == 20
+
+    def test_a_sale_under_the_bracket_is_unaffected_by_repeats(self) -> None:
+        assert score_form4(self.sale(1_000_000), prior_large_sales=9).total == 0
+
+    def test_repeats_do_not_touch_a_purchase(self) -> None:
+        """The buy side has its own logic, and buying repeatedly is a cluster --
+        which is a reason to score higher, not lower."""
+        buy = Form4Facts(is_open_market_purchase=True, purchase_value=2_000_000.0)
+        assert score_form4(buy, prior_large_sales=5).total == 50

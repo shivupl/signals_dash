@@ -27,9 +27,11 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .models import Score
+from .pipeline.promote import count_prior_large_sales
 from .scoring import score_event
 from .scoring.form4 import Form4Facts, describe_form4, score_form4
 from .scoring.one44 import Form144Facts, describe_144, score_144
+from .scoring.tables import FORM4_SALE_LARGE_THRESHOLD
 from .store.base import EventRow
 
 log = logging.getLogger(__name__)
@@ -49,12 +51,14 @@ class Changes:
         self.moves[key] = self.moves.get(key, 0) + 1
 
 
-def rescore_row(row: EventRow) -> Score:
+def rescore_row(row: EventRow, prior_large_sales: int = 0) -> Score:
     """The score the current rules would give this event.
 
-    Dispatch mirrors ``pipeline.process._score`` exactly, including the cluster
-    counts, which are read back from the payload rather than recounted -- the crowd
-    around an event is a fact about when it happened, not about today.
+    Dispatch mirrors ``pipeline.process._score`` exactly. Cluster counts are read
+    back from the payload rather than recounted -- the crowd around an event is a
+    fact about when it happened, not about today -- but ``prior_large_sales`` is
+    passed in, because rows stored before that rule existed never recorded it and
+    the window is fully determined by data already in the table.
     """
     payload: dict[str, Any] = dict(row.payload or {})
 
@@ -66,7 +70,9 @@ def rescore_row(row: EventRow) -> Score:
     if row.source == "edgar_form4":
         form4 = Form4Facts.from_payload(payload)
         insiders = int(payload.get("cluster_insiders") or 1)
-        return score_form4(form4, cluster_insiders=insiders)
+        return score_form4(
+            form4, cluster_insiders=insiders, prior_large_sales=prior_large_sales
+        )
 
     # 8-K, 13D/G, halts and system all score from the event itself.
     return score_event(_as_normalized(row))
@@ -119,7 +125,21 @@ async def rescore(
         for row in await store.all_events(sources):
             changes.seen += 1
             before = row.score
-            after = rescore_row(row)
+            prior = 0
+            payload = row.payload or {}
+            if (
+                row.source == "edgar_form4"
+                and not payload.get("is_open_market_purchase")
+                and float(payload.get("sale_value") or 0.0) > FORM4_SALE_LARGE_THRESHOLD
+                and row.company_id is not None
+            ):
+                prior = await count_prior_large_sales(
+                    store,
+                    row.company_id,
+                    [str(c) for c in (payload.get("insider_ciks") or [])],
+                    row.occurred_at,
+                )
+            after = rescore_row(row, prior)
             changes.flags_before += 1 if before >= threshold else 0
             changes.flags_after += 1 if after.total >= threshold else 0
             if after.total == before:

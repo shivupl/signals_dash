@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -164,3 +165,11 @@ class Store(Protocol):
     async def company_universes(self, company_id: int) -> list[str]: ...
     async def all_events(self, sources: tuple[str, ...] = ()) -> list[EventRow]: ...
     async def source_volume(self, since: datetime) -> list[dict[str, Any]]: ...
+    async def prior_large_sales(
+        self,
+        company_id: int,
+        insider_ciks: Sequence[str],
+        since: datetime,
+        before: datetime,
+        threshold: float,
+    ) -> int: ...

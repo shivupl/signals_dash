@@ -145,6 +145,21 @@ class PgStore:
         )
         return int(value or 0)
 
+    async def prior_large_sales(
+        self,
+        company_id: int,
+        insider_ciks: Sequence[str],
+        since: datetime,
+        before: datetime,
+        threshold: float,
+    ) -> int:
+        if not insider_ciks:
+            return 0
+        value = await self._pool.fetchval(
+            q.PRIOR_LARGE_SALES, company_id, since, before, list(insider_ciks), threshold
+        )
+        return int(value or 0)
+
     async def events_missing_cluster_bonus(
         self, company_id: int, since: datetime
     ) -> list[EventRow]:
