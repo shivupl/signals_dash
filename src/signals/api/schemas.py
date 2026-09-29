@@ -129,6 +129,29 @@ class SourceLatencyOut(BaseModel):
         return cls(source=row.source, events=row.events, p50_seconds=row.p50, p95_seconds=row.p95)
 
 
+class SourceVolumeOut(BaseModel):
+    """Is this source still producing, or only still answering?
+
+    ``recent`` against ``per_week`` is the difference between quiet and broken:
+    13D/G answered every poll for nine months while matching nothing. ``quiet``
+    is the watchdog's own verdict, not a second opinion computed here.
+    """
+
+    source: str
+    recent: int
+    per_week: float
+    quiet: bool
+
+    @classmethod
+    def of(cls, row: dict[str, Any], *, quiet: bool) -> SourceVolumeOut:
+        return cls(
+            source=str(row["source"]),
+            recent=int(row.get("recent") or 0),
+            per_week=float(row.get("per_week") or 0.0),
+            quiet=quiet,
+        )
+
+
 class SystemEventOut(BaseModel):
     """One line of the status strip."""
 
@@ -168,6 +191,10 @@ class SettingsIn(BaseModel):
 
 class StatsOut(BaseModel):
     latency: list[SourceLatencyOut]
+    #: One row per source that has ever produced anything, quiet ones included.
+    volume: list[SourceVolumeOut] = []
+    #: The window ``recent`` counts over, so the column can label itself.
+    volume_window_days: int = 0
     unresolved: int
     flag_threshold: int
     #: Events the latency figures ignore on purpose: the opening backfill of a

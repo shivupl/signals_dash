@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException, Query, Response
 from ..categories import CATEGORY_LABELS
 from ..clock import EASTERN
 from ..store.base import FeedFilter
-from .deps import get_store
+from .deps import current_flag_threshold, get_store
 from .schemas import EventOut
 
 router = APIRouter()
@@ -125,11 +125,15 @@ async def feed(
     )
     store = get_store()
     response.headers["X-Total-Count"] = str(await store.feed_count(filters))
-    # A row scoring 0 is on the record, but it is not a flag. With the score
-    # filter at 0 the header still has to be able to say how many flags there are.
+    # A flag is an event at or above the threshold the worker is pushing at -- not
+    # "whatever the slider is showing". Anchored to the threshold, "12 flags · 300
+    # routine" means the same thing at every filter setting; anchored to the slider
+    # it used to mean "scored at least 1", so with the slider at 0 the header
+    # reported almost everything as a flag and reserved "routine" for exact zeros.
+    threshold = await current_flag_threshold()
     flags_only = replace(
         filters,
-        min_score=max(filters.min_score, 1),
+        min_score=max(filters.min_score, threshold),
         include_system=False,
         sources=tuple(s for s in filters.sources if s != "system"),
     )

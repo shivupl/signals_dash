@@ -9,6 +9,7 @@ that mapping is written down.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 from typing import Any, Final
 
 from .scoring.tables import ITEM_BANDS
@@ -33,6 +34,77 @@ CATEGORY_LABELS: Final[dict[str, str]] = {
     "other": "Other",
     "system": "System",
 }
+
+
+@dataclass(frozen=True, slots=True)
+class SourceInfo:
+    """A source's name on screen, and what it is when you have forgotten.
+
+    The hint exists because the dashboard shows a legend, and a legend written in
+    the frontend drifts from the vocabulary written here. Order is the order the
+    filter bar lists them in.
+    """
+
+    label: str
+    hint: str
+
+
+SOURCES: Final[dict[str, SourceInfo]] = {
+    "edgar_8k": SourceInfo(
+        "8-K",
+        "Unscheduled material event -- the catch-all filing. Item numbers say which kind: "
+        "5.02 officer change, 2.02 earnings, 1.01 material agreement, 4.02 restatement.",
+    ),
+    "edgar_form4": SourceInfo(
+        "Form 4",
+        "An insider's completed trade, due within two business days. Transaction codes say "
+        "which: P bought on the open market, S sold, A was granted it.",
+    ),
+    "edgar_13dg": SourceInfo(
+        "13D/G",
+        "Somebody crossed 5% of a company. 13D means they intend to influence it; 13G means "
+        "they say they are passive. Amendments are frequent and usually routine.",
+    ),
+    "edgar_144": SourceInfo(
+        "Form 144",
+        "Notice of an intended sale of restricted stock, filed before the sale. A statement "
+        "of intent, not a receipt -- the trade may be smaller, later, or never.",
+    ),
+    "halts": SourceInfo(
+        "Halts",
+        "Trading paused by the exchange. Reason codes: LUDP volatility, T1 pending news, "
+        "M market-wide. Real-time only -- there is no history to backfill.",
+    ),
+    "system": SourceInfo(
+        "System",
+        "The pipeline talking about itself: a source gone quiet, the host suspended, a form "
+        "type arriving that no adapter claims.",
+    ),
+}
+
+#: Only the categories whose label alone would mislead or under-explain. A label
+#: like "Insider buy" needs no gloss, and glossing it would bury the ones that do.
+CATEGORY_HINTS: Final[dict[str, str]] = {
+    "sale_notice": (
+        "Filed before the sale, so it is intent rather than a receipt. Kept apart from an "
+        "insider sell so the two can be read -- and filtered -- separately."
+    ),
+    "grant_award": (
+        "Compensation mechanics: grants, option exercises, tax withholding, gifts. Recorded "
+        "because the absence would be a hole, rarely news on its own."
+    ),
+    "distress": (
+        "Restatement, bankruptcy, delisting notice, auditor resignation. The highest-scoring "
+        "events in the system."
+    ),
+    "activist_stake": "A 13D: a 5%+ holder who states an intention to influence the company.",
+    "other": (
+        "Nothing in this vocabulary matched. A category that fills up is a sign the vocabulary "
+        "has fallen behind what is being filed."
+    ),
+    "system": "Not about a company. Hidden from the feed by default; it has its own strip.",
+}
+
 
 _8K_ITEM_CATEGORY: Final[dict[str, str]] = {
     "5.02": "officer_change",

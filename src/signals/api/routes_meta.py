@@ -3,17 +3,19 @@
 from __future__ import annotations
 
 import hmac
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Header, HTTPException, Query
 
-from ..categories import CATEGORY_LABELS
-from .deps import get_settings, get_store
+from ..categories import CATEGORY_HINTS, CATEGORY_LABELS, SOURCES
+from ..pipeline.watchdog import DROUGHT_DAYS, droughts
+from .deps import current_flag_threshold, get_settings, get_store
 from .schemas import (
     ActiveOut,
     SettingsIn,
     SettingsOut,
     SourceLatencyOut,
+    SourceVolumeOut,
     StatsOut,
     SystemEventOut,
     WatchlistOut,
@@ -80,8 +82,15 @@ async def stats(hours: int = Query(24, ge=1, le=720)) -> StatsOut:
     store = get_store()
     window = timedelta(hours=hours)
     latency = await store.latency_percentiles(window)
+    # Volume beside the same window the drought alarm uses, judged by the same pure
+    # function. A panel that decided "quiet" for itself would eventually disagree
+    # with the alarm, and then neither could be trusted.
+    rows = await store.source_volume(datetime.now(tz=UTC) - timedelta(days=DROUGHT_DAYS))
+    quiet = {d.source for d in droughts(rows, DROUGHT_DAYS)}
     return StatsOut(
         latency=[SourceLatencyOut.of(r) for r in latency],
+        volume=[SourceVolumeOut.of(r, quiet=str(r["source"]) in quiet) for r in rows],
+        volume_window_days=DROUGHT_DAYS,
         unresolved=await store.count_unresolved(),
         flag_threshold=await current_flag_threshold(),
         excluded_from_latency=await store.count_excluded_from_latency(window),
@@ -96,7 +105,10 @@ async def system() -> list[SystemEventOut]:
 
 @router.get("/meta")
 async def meta() -> dict[str, object]:
-    """Vocabulary for the filter bar, so labels live in one place.
+    """Vocabulary for the filter bar and the legend, so labels live in one place.
+
+    Each source carries a hint -- what that form is for -- because the dashboard
+    shows a legend, and a legend written in the frontend drifts from the labels.
 
     ``sp500_captured`` is here so a stale membership snapshot is visible rather
     than assumed fresh -- the index changes about twenty names a year.
@@ -106,21 +118,14 @@ async def meta() -> dict[str, object]:
     _members, captured = load_sp500()
     return {
         "sp500_captured": captured.isoformat() if captured else None,
-        "categories": [{"value": k, "label": v} for k, v in CATEGORY_LABELS.items()],
+        "categories": [
+            {"value": k, "label": v, "hint": CATEGORY_HINTS.get(k)}
+            for k, v in CATEGORY_LABELS.items()
+        ],
         "sources": [
-            {"value": "edgar_8k", "label": "8-K"},
-            {"value": "edgar_form4", "label": "Form 4"},
-            {"value": "edgar_13dg", "label": "13D/G"},
-            {"value": "edgar_144", "label": "Form 144"},
-            {"value": "halts", "label": "Halts"},
-            {"value": "system", "label": "System"},
+            {"value": k, "label": v.label, "hint": v.hint} for k, v in SOURCES.items()
         ],
     }
-
-
-async def current_flag_threshold() -> int:
-    stored = await get_store().get_setting("flag_threshold")
-    return int(stored) if stored is not None else get_settings().flag_threshold
 
 
 @router.get("/settings", response_model=SettingsOut)

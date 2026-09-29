@@ -167,6 +167,78 @@ class TestStats:
         assert body["latency"] == []
         assert body["excluded_from_latency"] == 3
 
+    async def test_volume_reports_what_each_source_produced(
+        self, client: httpx.AsyncClient
+    ) -> None:
+        """The panel's "is it alive" column. Latency can be empty while volume is
+        not: these rows are excluded from latency but they were still produced."""
+        body = (await client.get("/api/stats")).json()
+        rows = {r["source"]: r for r in body["volume"]}
+        assert rows["edgar_8k"]["recent"] == 3
+        assert body["volume_window_days"] > 0
+
+    async def test_a_source_with_no_history_is_not_called_quiet(
+        self, client: httpx.AsyncClient
+    ) -> None:
+        """Absence only means something against a rate. A source that has never
+        produced twelve a week says nothing by producing none this week -- halts go
+        genuinely quiet for a fortnight, and calling that broken is a false alarm."""
+        body = (await client.get("/api/stats")).json()
+        assert [r["source"] for r in body["volume"] if r["quiet"]] == []
+
+
+class TestLegend:
+    """The dashboard's legend is served from /api/meta, beside the labels it
+    explains -- a legend written in the frontend drifts from the vocabulary."""
+
+    async def test_every_source_says_what_it_is(self, client: httpx.AsyncClient) -> None:
+        """A new adapter cannot reach the filter bar without explaining itself."""
+        sources = (await client.get("/api/meta")).json()["sources"]
+        assert sources, "the filter bar has no sources to offer"
+        assert [s["value"] for s in sources if not (s.get("hint") or "").strip()] == []
+
+    async def test_a_hint_explains_rather_than_repeats_the_label(
+        self, client: httpx.AsyncClient
+    ) -> None:
+        sources = {s["value"]: s for s in (await client.get("/api/meta")).json()["sources"]}
+        hint = sources["edgar_144"]["hint"]
+        assert hint != sources["edgar_144"]["label"]
+        # The one thing about a 144 that is easy to get backwards.
+        assert "intent" in hint.lower()
+
+    async def test_categories_are_hinted_only_where_the_label_is_not_enough(
+        self, client: httpx.AsyncClient
+    ) -> None:
+        """Glossing "Insider buy" would bury the entries that need it."""
+        categories = {
+            c["value"]: c.get("hint") for c in (await client.get("/api/meta")).json()["categories"]
+        }
+        assert categories["sale_notice"]
+        assert categories["insider_buy"] is None
+
+
+class TestFlagCount:
+    """The header reads "N flags · M routine" off these two counts, so a flag has
+    to mean one thing at every filter setting."""
+
+    async def test_flags_are_counted_at_the_threshold_not_the_slider(
+        self, client: httpx.AsyncClient
+    ) -> None:
+        """Seeded: 95, 60, 20, with the threshold at 30. Showing everything must
+        not turn the 20 into a flag -- it used to, because the count was anchored
+        to max(min_score, 1) and reserved "routine" for scores of exactly zero."""
+        response = await client.get("/api/feed?min_score=0")
+        assert int(response.headers["X-Total-Count"]) == 3
+        assert int(response.headers["X-Flag-Count"]) == 2
+
+    async def test_a_narrowed_view_counts_only_what_it_shows(
+        self, client: httpx.AsyncClient
+    ) -> None:
+        """Above the threshold the slider wins, so "flags in view" is the truth."""
+        response = await client.get("/api/feed?min_score=90")
+        assert int(response.headers["X-Total-Count"]) == 1
+        assert int(response.headers["X-Flag-Count"]) == 1
+
 
 class TestHealth:
     async def test_healthz(self, client: httpx.AsyncClient) -> None:
@@ -176,8 +248,16 @@ class TestHealth:
 class TestTiers:
     @pytest.mark.parametrize(
         ("score", "tier"),
-        [(100, "critical"), (85, "critical"), (84, "high"), (60, "high"),
-         (59, "background"), (30, "background"), (29, "quiet"), (0, "quiet")],
+        [
+            (100, "critical"),
+            (85, "critical"),
+            (84, "high"),
+            (60, "high"),
+            (59, "background"),
+            (30, "background"),
+            (29, "quiet"),
+            (0, "quiet"),
+        ],
     )
     def test_boundaries(self, score: int, tier: str) -> None:
         assert tier_for(score) == tier
@@ -225,9 +305,7 @@ class TestStatsExcludesBackfill:
         body = (await client.get("/api/stats")).json()
         assert body["latency"] == []
 
-    async def test_live_events_are_counted(
-        self, client: httpx.AsyncClient, pg_dsn: str
-    ) -> None:
+    async def test_live_events_are_counted(self, client: httpx.AsyncClient, pg_dsn: str) -> None:
         await self._insert(pg_dsn, "live-1", "true", 30)
         body = (await client.get("/api/stats")).json()
         assert len(body["latency"]) == 1
@@ -343,8 +421,7 @@ class TestActive:
             "values ('0000000014', 'QUIET', 'Quiet Inc.', true) returning id"
         )
         await pg.execute(
-            "insert into universe_member (company_id, universe) "
-            "values ($1,'sp500'), ($2,'sp500')",
+            "insert into universe_member (company_id, universe) values ($1,'sp500'), ($2,'sp500')",
             busy_id,
             quiet_id,
         )
@@ -367,7 +444,7 @@ class TestActive:
         assert rows[0]["top_score"] == 70
 
     async def test_rejects_all_as_a_universe(self, client: httpx.AsyncClient) -> None:
-        """"all" is the absence of a filter, which is not a rail."""
+        """ "all" is the absence of a filter, which is not a rail."""
         assert (await client.get("/api/active?universe=all")).status_code == 422
 
 
@@ -377,11 +454,13 @@ class TestForm144Vocabulary:
 
     async def test_form_144_is_offered_as_a_source(self, client: httpx.AsyncClient) -> None:
         sources = (await client.get("/api/meta")).json()["sources"]
-        assert {"value": "edgar_144", "label": "Form 144"} in sources
+        labels = {s["value"]: s["label"] for s in sources}
+        assert labels["edgar_144"] == "Form 144"
 
     async def test_planned_sale_is_offered_as_a_category(self, client: httpx.AsyncClient) -> None:
         categories = (await client.get("/api/meta")).json()["categories"]
-        assert {"value": "sale_notice", "label": "Planned sale (144)"} in categories
+        labels = {c["value"]: c["label"] for c in categories}
+        assert labels["sale_notice"] == "Planned sale (144)"
 
     async def test_a_notice_can_be_filtered_by_source(
         self, client: httpx.AsyncClient, pg: asyncpg.Connection
