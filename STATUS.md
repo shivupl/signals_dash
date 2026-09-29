@@ -530,3 +530,49 @@ distribution, `python -m signals rescore --dry-run` to ask what a change would c
 before paying for it. The rescore is explicit and never automatic -- ingest never
 rewrites history -- and both paths compute the repeat count with the same function,
 because if they could disagree the corpus would stop being a baseline.
+
+## Reading the dashboard (2026-09-29)
+
+Three additions, all about the screen rather than the score.
+
+**Diagnostics live at the foot of the shell**, not behind a route. Collapsed, one
+line of vitals in the shape of a terminal status bar: lag, whether any source has
+gone quiet, the threshold, unresolved. Open, a sources table with what each form is
+for, a legend for the event types whose label under-explains them, and the score
+bands with the same colour swatch the feed paints down each row. It mirrors the
+status strip at the head of the shell -- that one is for what is wrong, this for the
+numbers that hold whether or not anything is.
+
+Two things it deliberately does not do. It does not show "last polled": that lives
+in the worker's memory, never reaches the API, and a panel implying it watched the
+poll would be worse than one that admits it cannot. And it does not decide for
+itself what "quiet" means -- it calls the watchdog's own `droughts()`, so the panel
+and the alarm cannot drift into disagreeing.
+
+**Deploying it found a bug within a minute.** 13D/G had exactly one measured event,
+arrived five hours late through the reconciliation sweep, and being the only sample
+it became that source's p50 -- so the headline read "lag 35s-5h 12m" while the three
+busy sources sat at forty seconds. A percentile over one observation is that
+observation. The headline now ignores sources under five measured events; the thin
+source stays in the table with its real figure and its sample beside it. Same shape
+as the drought rule: absence, or a median, only means something against enough
+history to judge it by.
+
+**Flags / Everything replaces dragging the slider to zero.** It snaps to the live
+threshold rather than a hard-coded 30, so it keeps meaning the same thing when the
+threshold moves. It is called Everything and not All because the date range already
+has an All, and two of those in one bar is a puzzle rather than a control.
+
+That switch exposed a header that had been quietly wrong. `X-Flag-Count` was
+`max(min_score, 1)`, so showing everything made the header call all 292 events
+scoring 1+ flags and reserve "routine" for the 78 scoring exactly zero. Anchored to
+the threshold it reads 280 flags and 90 routine, and means the same thing at every
+filter setting -- the same failure as the cumulative flag count before it.
+
+**The rail and the monitor tab stop assuming forty names.** The tab said "My 40",
+true today and wrong the day the watchlist grows towards the small companies that
+are the point of this thing; it says Watchlist now, with the count in the header
+where it is read from the rail. The rail lists twelve flagged names and says how
+many more there are. Size-awareness -- knowing a $5M buy is enormous at $200M and
+noise at $3T -- needs market cap, which nothing in the schema stores yet. That is
+the next piece of work, not this one.
