@@ -24,6 +24,7 @@ export function CompanyPage({
   onReset,
   sources,
   categories,
+  threshold,
 }: {
   ticker: string;
   filters: Filters;
@@ -31,6 +32,7 @@ export function CompanyPage({
   onReset: () => void;
   sources: Option[];
   categories: Option[];
+  threshold: number;
 }) {
   const [data, setData] = useState<CompanyPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +108,7 @@ export function CompanyPage({
         sources={sources}
         categories={categories}
         companies={[]}
+        threshold={threshold}
         showTickers={false}
         showSystem={false}
       />

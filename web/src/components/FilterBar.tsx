@@ -179,6 +179,7 @@ export function FilterBar({
   sources,
   categories,
   companies,
+  threshold,
   showTickers = true,
   showSystem = true,
 }: {
@@ -188,6 +189,9 @@ export function FilterBar({
   sources: Option[];
   categories: Option[];
   companies: { ticker: string; name: string }[];
+  /** What the worker is pushing at, so "Flags" means the same thing here as it
+   *  does in the header. Falls back to the default if /stats has not answered. */
+  threshold: number;
   showTickers?: boolean;
   showSystem?: boolean;
 }) {
@@ -222,20 +226,44 @@ export function FilterBar({
         }
       />
 
-      <label className="slider" title="Display threshold — yours alone, not saved">
-        <span className="mono">score ≥ {score}</span>
-        <input
-          type="range"
-          min={0}
-          max={100}
-          step={5}
-          value={score}
-          onChange={(e) => setScore(Number(e.target.value))}
-          onMouseUp={() => onChange({ minScore: score })}
-          onTouchEnd={() => onChange({ minScore: score })}
-          onKeyUp={() => onChange({ minScore: score })}
-        />
-      </label>
+      {/* The switch and the slider are one control at two resolutions: the common
+          question is "flags or everything", and the slider is there for the rare
+          day you want a specific number. Grouped so they read as one thing. */}
+      <div className="scope">
+        <div className="seg" role="group" aria-label="How much to show">
+          <button
+            className={filters.minScore === threshold ? "on" : ""}
+            aria-pressed={filters.minScore === threshold}
+            title={`Only events scoring ${threshold} or more — the threshold the worker pushes at`}
+            onClick={() => onChange({ minScore: threshold })}
+          >
+            Flags
+          </button>
+          <button
+            className={filters.minScore === 0 ? "on" : ""}
+            aria-pressed={filters.minScore === 0}
+            title="Every filing we recorded for these companies, flagged or not"
+            onClick={() => onChange({ minScore: 0 })}
+          >
+            Everything
+          </button>
+        </div>
+        <label className="slider" title="Display threshold — yours alone, not saved">
+          <span className="mono">≥ {score}</span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            value={score}
+            onChange={(e) => setScore(Number(e.target.value))}
+            onMouseUp={() => onChange({ minScore: score })}
+            onTouchEnd={() => onChange({ minScore: score })}
+            onKeyUp={() => onChange({ minScore: score })}
+            aria-label="Minimum score"
+          />
+        </label>
+      </div>
 
       <div className="seg" role="group" aria-label="Date range">
         {RANGES.map((r) => (

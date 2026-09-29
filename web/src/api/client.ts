@@ -57,6 +57,8 @@ export interface SystemEvent {
 export interface Option {
   value: string;
   label: string;
+  /** What this is, for the legend. Null where the label already says it. */
+  hint?: string | null;
 }
 
 export interface Meta {
@@ -155,6 +157,34 @@ export function fetchActive(filters: Filters): Promise<ActiveEntry[]> {
   if (filters.sources.length) q.set("source", filters.sources.join(","));
   return getJson<ActiveEntry[]>(`/api/active?${q}`);
 }
+
+export interface SourceLatency {
+  source: string;
+  events: number;
+  p50_seconds: number | null;
+  p95_seconds: number | null;
+}
+
+export interface SourceVolume {
+  source: string;
+  recent: number;
+  per_week: number;
+  /** The watchdog's own verdict: producing nothing against a history that says
+   *  it should be. Not recomputed here, so the panel and the alarm agree. */
+  quiet: boolean;
+}
+
+export interface Stats {
+  latency: SourceLatency[];
+  volume: SourceVolume[];
+  volume_window_days: number;
+  unresolved: number;
+  flag_threshold: number;
+  excluded_from_latency: number;
+  latency_note: string;
+}
+
+export const fetchStats = (): Promise<Stats> => getJson<Stats>("/api/stats");
 
 export const fetchSystem = (): Promise<SystemEvent[]> => getJson<SystemEvent[]>("/api/system");
 export const fetchMeta = (): Promise<Meta> => getJson<Meta>("/api/meta");

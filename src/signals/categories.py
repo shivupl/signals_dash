@@ -52,7 +52,7 @@ class SourceInfo:
 SOURCES: Final[dict[str, SourceInfo]] = {
     "edgar_8k": SourceInfo(
         "8-K",
-        "Unscheduled material event -- the catch-all filing. Item numbers say which kind: "
+        "Unscheduled material event — the catch-all filing. Item numbers say which kind: "
         "5.02 officer change, 2.02 earnings, 1.01 material agreement, 4.02 restatement.",
     ),
     "edgar_form4": SourceInfo(
@@ -68,12 +68,12 @@ SOURCES: Final[dict[str, SourceInfo]] = {
     "edgar_144": SourceInfo(
         "Form 144",
         "Notice of an intended sale of restricted stock, filed before the sale. A statement "
-        "of intent, not a receipt -- the trade may be smaller, later, or never.",
+        "of intent, not a receipt — the trade may be smaller, later, or never.",
     ),
     "halts": SourceInfo(
         "Halts",
         "Trading paused by the exchange. Reason codes: LUDP volatility, T1 pending news, "
-        "M market-wide. Real-time only -- there is no history to backfill.",
+        "M market-wide. Real-time only — there is no history to backfill.",
     ),
     "system": SourceInfo(
         "System",
@@ -87,7 +87,7 @@ SOURCES: Final[dict[str, SourceInfo]] = {
 CATEGORY_HINTS: Final[dict[str, str]] = {
     "sale_notice": (
         "Filed before the sale, so it is intent rather than a receipt. Kept apart from an "
-        "insider sell so the two can be read -- and filtered -- separately."
+        "insider sell so the two can be read — and filtered — separately."
     ),
     "grant_award": (
         "Compensation mechanics: grants, option exercises, tax withholding, gifts. Recorded "

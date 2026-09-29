@@ -2,17 +2,20 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   fetchActive,
   fetchMeta,
+  fetchStats,
   fetchSystem,
   fetchWatchlist,
   type ActiveEntry,
   type Meta,
   type SignalEvent,
+  type Stats,
   type SystemEvent,
   type WatchlistEntry,
 } from "./api/client";
 import { useFeed } from "./api/useFeed";
 import { ActiveRail } from "./components/ActiveRail";
 import { CompanyPage } from "./components/CompanyPage";
+import { DiagnosticsBar } from "./components/DiagnosticsBar";
 import { FeedList } from "./components/FeedList";
 import { FilterBar } from "./components/FilterBar";
 import { marketDay } from "./components/format";
@@ -34,6 +37,8 @@ export default function App() {
   const [active, setActive] = useState<ActiveEntry[]>([]);
   const [system, setSystem] = useState<SystemEvent[]>([]);
   const [meta, setMeta] = useState<Meta>(EMPTY_META);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const refreshSystem = useCallback(() => {
@@ -52,6 +57,21 @@ export default function App() {
 
   useEffect(() => {
     void fetchMeta().then(setMeta).catch(() => undefined);
+  }, []);
+
+  // One request a minute, for both the diagnostics readout and the threshold the
+  // Flags switch snaps to. Moves about as slowly as the status strip does.
+  useEffect(() => {
+    const load = () =>
+      void fetchStats()
+        .then((next) => {
+          setStats(next);
+          setStatsError(null);
+        })
+        .catch((e: unknown) => setStatsError(e instanceof Error ? e.message : String(e)));
+    load();
+    const timer = setInterval(load, 60_000);
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -84,6 +104,9 @@ export default function App() {
   );
 
   const today = marketDay(new Date());
+  // Until /stats answers, the default is the best available guess -- and it is the
+  // value the server ships with, so the switch is usually right even then.
+  const threshold = stats?.flag_threshold ?? DEFAULTS.minScore;
   // Narrowed means narrowed *past the default*. The default window and the rail
   // both cover a week, so they agree and the count needs no qualifier; a ticker
   // filter or a different range is what makes it the view's own number.
@@ -103,6 +126,7 @@ export default function App() {
           </a>
           <UniverseSwitch
             value={filters.universe}
+            watched={watchlist.length}
             onChange={(universe) => setFilters(universeDefaults(universe))}
           />
           <span className="meta mono">
@@ -139,6 +163,7 @@ export default function App() {
             onReset={resetFilters}
             sources={meta.sources}
             categories={meta.categories}
+            threshold={threshold}
           />
         ) : (
           <>
@@ -149,6 +174,7 @@ export default function App() {
               sources={meta.sources}
               categories={meta.categories}
               companies={companies}
+              threshold={threshold}
             />
             <div className="split">
               <FeedList
@@ -167,6 +193,13 @@ export default function App() {
             </div>
           </>
         )}
+
+        <DiagnosticsBar
+          stats={stats}
+          error={statsError}
+          sources={meta.sources}
+          categories={meta.categories}
+        />
       </div>
 
       <footer>Public data only. Finds signals; makes no decisions.</footer>

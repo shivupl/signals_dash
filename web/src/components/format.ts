@@ -38,9 +38,28 @@ export function money(value: number): string {
   return `$${Math.round(value)}`;
 }
 
-export function tierOf(score: number): "critical" | "high" | "background" | "quiet" {
-  if (score >= 85) return "critical";
-  if (score >= 60) return "high";
-  if (score >= 30) return "background";
+export type Tier = "critical" | "high" | "background" | "quiet";
+
+/** The bands the feed colours by, in one place so the legend explaining those
+ *  colours reads from the same definition that assigns them. */
+export const TIERS: { tier: Tier; from: number; label: string; means: string }[] = [
+  { tier: "critical", from: 85, label: "85+", means: "Bankruptcy, restatement, delisting, auditor gone" },
+  { tier: "high", from: 60, label: "60–84", means: "Officer departure, activist stake, an unusually large sale" },
+  { tier: "background", from: 30, label: "30–59", means: "Material agreement, insider buy, most halts" },
+  { tier: "quiet", from: 0, label: "under 30", means: "Recorded and searchable, but not flagged" },
+];
+
+export function tierOf(score: number): Tier {
+  for (const band of TIERS) if (score >= band.from) return band.tier;
   return "quiet";
+}
+
+/** Seconds as something you can read at a glance: "8s", "2m 10s", "—". */
+export function duration(seconds: number | null): string {
+  if (seconds === null || !Number.isFinite(seconds)) return "—";
+  if (seconds < 1) return "<1s";
+  if (seconds < 90) return `${Math.round(seconds)}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ${String(Math.round(seconds % 60)).padStart(2, "0")}s`;
+  return `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, "0")}m`;
 }

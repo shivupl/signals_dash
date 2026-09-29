@@ -378,3 +378,75 @@ a.rail-row:hover .tk { text-decoration: underline; text-underline-offset: 3px; }
   padding: 4px 10px 6px; font-size: 10px; letter-spacing: 0.04em;
   color: var(--ink-soft); border-bottom: 1px solid var(--rule-soft);
 }
+
+/* ---- diagnostics ---------------------------------------------------------- */
+/* The foot of the shell, mirroring the status strip at its head. That one is for
+   what is wrong; this is for the numbers that hold whether or not anything is.
+   Dense, tabular, tiny uppercase field names -- a readout, not a report. */
+.dg { border-top: 1px solid var(--rule); background: #101112; }
+.dg-line {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px; width: 100%;
+  padding: 8px 18px; background: none; border: 0; color: var(--ink-mid);
+  font: inherit; font-size: 12.5px; text-align: left; cursor: pointer;
+}
+.dg-line:hover { color: var(--ink); }
+.dg-chev { flex: none; width: 8px; color: var(--ink-soft); }
+.dg-label {
+  flex: none; font-size: 10.5px; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--ink-soft);
+}
+.dg-kv { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.dg-kv i {
+  font-style: normal; font-size: 10.5px; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--ink-soft);
+}
+.dg-kv b { font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+.dg-kv .dg-unit { font-size: 11.5px; color: var(--ink-soft); }
+.dg-kv.warn b { color: var(--high); }
+.dg-kv.err { color: var(--critical); }
+.dg-kv.soft { color: var(--ink-soft); }
+.dg-more { margin-left: auto; flex: none; font-size: 11px; color: var(--ink-soft); }
+
+.dg-body { padding: 0 18px 16px; border-top: 1px solid var(--rule-soft); }
+.dg-block h4 {
+  margin: 15px 0 7px; font-size: 10.5px; font-weight: 400; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--ink-soft);
+}
+.dg-scroll { overflow-x: auto; }
+.dg-tbl { min-width: 620px; }
+.dg-tbl th, .dg-tbl td { padding-right: 20px; }
+.dg-tbl th:last-child, .dg-tbl td:last-child { padding-right: 0; }
+.dg-tbl .num.warn { color: var(--high); }
+.dg-name { font-weight: 500; color: var(--ink); }
+.dg-hint { display: block; margin-top: 3px; font-size: 12px; color: var(--ink-soft); max-width: 74ch; }
+.dg-tbl tr.quiet-src .dg-name { color: var(--high); }
+
+.dg-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 34px; }
+/* The same width the feed and its rail part company at: one breakpoint, not two. */
+@media (max-width: 880px) { .dg-cols { grid-template-columns: 1fr; } }
+.dg-defs { margin: 0; }
+.dg-defs > div {
+  display: grid; grid-template-columns: 132px 1fr; gap: 12px;
+  padding: 6px 0; border-bottom: 1px solid var(--rule-soft);
+}
+.dg-defs > div:last-child { border-bottom: 0; }
+.dg-defs dt { display: flex; align-items: baseline; gap: 8px; font-size: 12.5px; color: var(--ink-mid); }
+.dg-defs dd { margin: 0; font-size: 12.5px; color: var(--ink-soft); }
+/* Three pixels of the same colour the feed row paints down its left edge, so the
+   legend looks like the thing it is explaining. */
+.dg-swatch { flex: none; width: 3px; height: 12px; border-radius: 1px; align-self: center; }
+.dg-swatch.critical { background: var(--critical); }
+.dg-swatch.high { background: var(--high); }
+.dg-swatch.background { background: var(--info); }
+.dg-swatch.quiet { background: #2a2d30; }
+.dg-note { margin: 9px 0 0; font-size: 12px; color: var(--ink-soft); max-width: 86ch; }
+.dg-foot {
+  margin: 18px 0 0; padding-top: 11px; border-top: 1px solid var(--rule-soft);
+  font-size: 12px; color: var(--ink-soft); max-width: 96ch;
+}
+
+/* The switch and the slider are one control: same question, two resolutions. */
+.scope { display: inline-flex; align-items: center; gap: 10px; }
+.scope .slider span { min-width: 34px; }
+.scope .slider input { width: 92px; }
+.rail-note.tight { padding-top: 9px; padding-bottom: 4px; margin-top: 0; border-top: 0; color: var(--ink-mid); }

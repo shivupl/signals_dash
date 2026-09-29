@@ -206,6 +206,14 @@ class TestLegend:
         # The one thing about a 144 that is easy to get backwards.
         assert "intent" in hint.lower()
 
+    async def test_hints_are_prose_not_source_comments(self, client: httpx.AsyncClient) -> None:
+        """This codebase writes "--" for a dash in comments and docstrings. A hint
+        is read on screen, where it renders as two hyphens and looks like a typo."""
+        body = (await client.get("/api/meta")).json()
+        hints = [s["hint"] for s in body["sources"]]
+        hints += [c["hint"] for c in body["categories"] if c["hint"]]
+        assert [h for h in hints if "--" in h] == []
+
     async def test_categories_are_hinted_only_where_the_label_is_not_enough(
         self, client: httpx.AsyncClient
     ) -> None:

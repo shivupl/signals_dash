@@ -41,19 +41,26 @@ function Row({ entry, dim }: { entry: WatchlistEntry; dim?: boolean }) {
   );
 }
 
+/** The rail is a glance, not an index. Past this many flagged names it says how
+ *  many more there are and lets the feed carry the rest -- a watchlist growing
+ *  towards a few hundred small caps must not turn the rail into a scroll. */
+const MOST = 12;
+
 /**
  * Watched companies ranked by how much happened this week. Counts use the same
  * score threshold as the header, so the two cannot disagree.
  */
 export function WatchlistRail({ entries }: { entries: WatchlistEntry[] }) {
-  const active = entries.filter((e) => e.flags > 0);
+  const flagged = entries.filter((e) => e.flags > 0);
+  const active = flagged.slice(0, MOST);
+  const hidden = flagged.length - active.length;
   // On a quiet morning the flagged list is empty, which reads as "broken". A big
   // move with no filing behind it is its own kind of question.
   const movers = entries
     .filter((e) => e.flags === 0 && e.week_change !== null)
     .sort((a, b) => Math.abs(b.week_change ?? 0) - Math.abs(a.week_change ?? 0))
     .slice(0, Math.max(0, 8 - active.length));
-  const quiet = entries.length - active.length - movers.length;
+  const quiet = entries.length - flagged.length - movers.length;
 
   return (
     <aside className="rail">
@@ -61,6 +68,11 @@ export function WatchlistRail({ entries }: { entries: WatchlistEntry[] }) {
       {active.map((e) => (
         <Row entry={e} key={e.company_id} />
       ))}
+      {hidden > 0 && (
+        <div className="rail-note tight">
+          {hidden} more with flags — the feed has them all
+        </div>
+      )}
       {active.length === 0 && <div className="rail-note">No flags this week.</div>}
       {movers.length > 0 && <h2 className="sub">Moving, no flags</h2>}
       {movers.map((e) => (
