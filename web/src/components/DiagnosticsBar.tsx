@@ -170,7 +170,7 @@ function Scores({ threshold }: { threshold: number }) {
       </dl>
       <p className="dg-note">
         The colour is the bar down the left of each row. Flags are events at or above the
-        threshold, <span className="mono">{threshold}</span> — the bands are fixed, the
+        threshold, <span className="mono">{threshold}</span>. The bands are fixed; the
         threshold moves.
       </p>
     </div>

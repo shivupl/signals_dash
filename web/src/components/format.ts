@@ -1,26 +1,31 @@
-// Market time, always. Rendering in the viewer's own zone turns a 16:05 post-close
-// 8-K into "13:05" on the west coast, which reads as mid-session and is wrong in
-// the way that matters.
+// Market time is the default everywhere, because rendering in the viewer's own
+// zone turns a 16:05 post-close 8-K into "13:05" on the west coast, which reads
+// as mid-session. A viewer who knows that and wants their own clock anyway can
+// pick one; see zone.tsx. The default stays ET.
 export const MARKET_TZ = "America/New_York";
 
-export function timeOf(iso: string): string {
+export function timeOf(iso: string, zone: string = MARKET_TZ): string {
   return new Date(iso).toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-    timeZone: MARKET_TZ,
+    timeZone: zone,
   });
 }
 
-export function dayOf(iso: string): string {
+export function dayOf(iso: string, zone: string = MARKET_TZ): string {
   return new Date(iso).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
-    timeZone: MARKET_TZ,
+    timeZone: zone,
   });
 }
 
-/** The calendar day in market time -- what "today" has to mean here. */
+/** The calendar day in market time -- what "today" has to mean here.
+ *
+ *  Takes no zone on purpose. This one decides which day a filing belongs to and
+ *  builds the since/until the API is asked for, and a filing belongs to the
+ *  session it was published into whoever happens to be reading. */
 export function marketDay(value: Date | string): string {
   return new Date(value).toLocaleDateString("en-CA", { timeZone: MARKET_TZ });
 }

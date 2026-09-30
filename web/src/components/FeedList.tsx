@@ -1,5 +1,6 @@
 import type { SignalEvent } from "../api/client";
 import { onInternalClick } from "../router";
+import { useZone } from "../zone";
 import { dayOf, marketDay, pct, timeOf } from "./format";
 
 export function EventRow({
@@ -13,6 +14,7 @@ export function EventRow({
   fresh?: boolean;
   linkTicker?: boolean;
 }) {
+  const zone = useZone();
   const isToday = marketDay(event.occurred_at) === today;
   const label = event.ticker ?? (event.source === "system" ? "SYS" : "MKT");
   const breakdown = Object.entries(event.score_parts)
@@ -22,9 +24,9 @@ export function EventRow({
   return (
     <div className={`row ${event.tier}${fresh ? " fresh" : ""}`}>
       <span className="bar-accent" />
-      <span className="time mono">{timeOf(event.occurred_at)}</span>
+      <span className="time mono">{timeOf(event.occurred_at, zone)}</span>
       {/* The date only earns its place when the row is not from today. */}
-      {!isToday && <span className="date mono">{dayOf(event.occurred_at)}</span>}
+      {!isToday && <span className="date mono">{dayOf(event.occurred_at, zone)}</span>}
       <span className="head">
         {event.ticker && linkTicker ? (
           <a
@@ -84,7 +86,7 @@ export function FeedList({
       <div className="state">
         <div className="state-head">Nothing matches.</div>
         <p className="state-body">
-          A quiet feed is the normal state — the target is under twenty flags a day. If a source
+          A quiet feed is the normal state: the target is under twenty flags a day. If a source
           stops polling, that shows up in the status strip above. Lower the score or widen the
           filters to see routine filings.
         </p>
@@ -98,7 +100,7 @@ export function FeedList({
       ))}
       {total > events.length && (
         <div className="more mono">
-          showing {events.length} of {total} — narrow the filters to see the rest
+          showing {events.length} of {total}; narrow the filters to see the rest
         </div>
       )}
     </div>

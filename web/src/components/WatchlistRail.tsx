@@ -70,7 +70,7 @@ export function WatchlistRail({ entries }: { entries: WatchlistEntry[] }) {
       ))}
       {hidden > 0 && (
         <div className="rail-note tight">
-          {hidden} more with flags — the feed has them all
+          {hidden} more with flags; the feed has them all
         </div>
       )}
       {active.length === 0 && <div className="rail-note">No flags this week.</div>}

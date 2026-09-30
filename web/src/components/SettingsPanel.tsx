@@ -58,7 +58,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
         <h3>Flag threshold</h3>
         <p className="help">
           Events scoring at or above this are <b>pushed to the dashboard and price-stamped</b>.
-          It is not the score slider — that only changes what you are looking at. Nothing is
+          It is not the score slider, which only changes what you are looking at. Nothing is
           ever deleted: every event is stored at its score, so lowering this later surfaces
           what was always there.
         </p>

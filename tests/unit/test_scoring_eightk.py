@@ -77,7 +77,7 @@ class TestScoreParts:
 class TestSummaries:
     def test_names_the_item_and_its_meaning(self) -> None:
         assert summarize_8k(["4.02"]) == (
-            "8-K Item 4.02 — Prior financials should not be relied on"
+            "8-K Item 4.02: Prior financials should not be relied on"
         )
 
     def test_counts_the_others(self) -> None:

@@ -21,6 +21,7 @@ import { FilterBar } from "./components/FilterBar";
 import { marketDay } from "./components/format";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { StatusStrip } from "./components/StatusStrip";
+import { TimeZonePicker } from "./components/TimeZonePicker";
 import { UniverseSwitch } from "./components/UniverseSwitch";
 import { WatchlistRail } from "./components/WatchlistRail";
 import { DEFAULTS, universeDefaults, useFilters } from "./filters";
@@ -145,7 +146,8 @@ export default function App() {
             {/* The rail's own row count, never a hard-coded 500: membership is
                 whatever the snapshot says it is. */}
             <b>{watchlist.length}</b>{" "}
-            {filters.universe === "sp500" ? "in S&P 500" : "watched"} · times ET
+            {filters.universe === "sp500" ? "in S&P 500" : "watched"} ·{" "}
+            <TimeZonePicker />
           </span>
           <span className="spacer" />
           <button className="gear" onClick={() => setSettingsOpen(true)} aria-label="Settings" title="Settings">

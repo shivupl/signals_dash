@@ -70,10 +70,10 @@ def summarize_8k(items: Sequence[str]) -> str:
     known = [i for i in items if i in ITEM_BANDS]
     if not known:
         if items:
-            return f"8-K — item {', '.join(items)}"
+            return f"8-K item {', '.join(items)}"
         return "8-K filed"
     worst = max(known, key=lambda i: ITEM_BANDS[i])
     label = ITEM_LABELS.get(worst, "Material event")
     extra = len([i for i in items if i != worst])
     suffix = f" (+{extra} more)" if extra else ""
-    return f"8-K Item {worst} — {label}{suffix}"
+    return f"8-K Item {worst}: {label}{suffix}"

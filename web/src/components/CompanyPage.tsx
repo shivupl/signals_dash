@@ -193,7 +193,7 @@ export function CompanyPage({
             Possibly related, unresolved <span className="count mono">{data.possible_aliases.length}</span>
           </h3>
           <p className="help">
-            Filings that matched no company but whose filer name starts like this one — usually a
+            Filings that matched no company but whose filer name starts like this one: usually a
             subsidiary or financing vehicle. Matched on the name alone, so treat as a lead.
           </p>
           <div className="tbl-wrap">

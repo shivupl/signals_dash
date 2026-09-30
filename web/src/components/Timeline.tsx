@@ -102,7 +102,7 @@ export function Timeline({
               onMouseEnter={() => setHover(e)}
               onMouseLeave={() => setHover(null)}
             >
-              <title>{`${e.headline} — ${e.score}`}</title>
+              <title>{`${e.headline} · ${e.score}`}</title>
             </circle>
           </a>
         ))}

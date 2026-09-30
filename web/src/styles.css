@@ -450,3 +450,16 @@ a.rail-row:hover .tk { text-decoration: underline; text-underline-offset: 3px; }
 .scope .slider span { min-width: 34px; }
 .scope .slider input { width: 92px; }
 .rail-note.tight { padding-top: 9px; padding-bottom: 4px; margin-top: 0; border-top: 0; color: var(--ink-mid); }
+
+/* The clock selector in the header. Reads as the label it replaced until hovered. */
+.tz { position: relative; display: inline-block; }
+.tz-button {
+  appearance: none; background: none; border: 0; padding: 0;
+  font: inherit; color: var(--ink-soft); cursor: pointer;
+  border-bottom: 1px dotted #3a3e42;
+}
+.tz-button:hover { color: var(--ink-mid); border-bottom-color: var(--ink-soft); }
+.tz-pop { left: auto; right: 0; min-width: 234px; }
+.tz-pop .pop-row.on { background: #26292c; }
+.tz-pop .zone-label { color: var(--ink); min-width: 82px; }
+.tz-pop .pop-note { border-bottom: 0; border-top: 1px solid var(--rule-soft); padding-top: 6px; }

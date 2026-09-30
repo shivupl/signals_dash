@@ -214,6 +214,20 @@ class TestLegend:
         hints += [c["hint"] for c in body["categories"] if c["hint"]]
         assert [h for h in hints if "--" in h] == []
 
+    async def test_prose_uses_no_em_dashes(self, client: httpx.AsyncClient) -> None:
+        """A house rule for everything that renders: no em dash as punctuation.
+
+        Commas, colons and semicolons do the same work, and the vocabulary served
+        from here is the prose most likely to acquire one, since it is written in
+        Python and read on a web page.
+        """
+        body = (await client.get("/api/meta")).json()
+        prose = [s["hint"] for s in body["sources"]]
+        prose += [c["hint"] for c in body["categories"] if c["hint"]]
+        prose += [s["label"] for s in body["sources"]]
+        prose += [c["label"] for c in body["categories"]]
+        assert [p for p in prose if "\u2014" in p] == []
+
     async def test_categories_are_hinted_only_where_the_label_is_not_enough(
         self, client: httpx.AsyncClient
     ) -> None:

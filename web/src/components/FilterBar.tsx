@@ -234,7 +234,7 @@ export function FilterBar({
           <button
             className={filters.minScore === threshold ? "on" : ""}
             aria-pressed={filters.minScore === threshold}
-            title={`Only events scoring ${threshold} or more — the threshold the worker pushes at`}
+            title={`Only events scoring ${threshold} or more, the threshold the worker pushes at`}
             onClick={() => onChange({ minScore: threshold })}
           >
             Flags
@@ -248,7 +248,7 @@ export function FilterBar({
             Everything
           </button>
         </div>
-        <label className="slider" title="Display threshold — yours alone, not saved">
+        <label className="slider" title="Display threshold. Yours alone, not saved.">
           <span className="mono">≥ {score}</span>
           <input
             type="range"

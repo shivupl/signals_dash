@@ -183,7 +183,7 @@ MARKET_WIDE_REASONS: Final[frozenset[str]] = frozenset({"MWC1", "MWC2", "MWC3"})
 HALT_REASON_LABELS: Final[dict[str, str]] = {
     "T1": "Halted, news pending",
     "T2": "Halted, news released",
-    "T3": "Halted, news released — resumption scheduled",
+    "T3": "Halted, news released; resumption scheduled",
     "T5": "Single-stock trading pause",
     "T6": "Halted, extraordinary market activity",
     "T8": "ETF halted",

@@ -1,15 +1,15 @@
 import { useState } from "react";
 import type { SystemEvent } from "../api/client";
-import { MARKET_TZ } from "./format";
+import { useZone } from "../zone";
 
-function when(iso: string): string {
+function when(iso: string, zone: string): string {
   return new Date(iso).toLocaleString("en-US", {
     month: "short",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-    timeZone: MARKET_TZ,
+    timeZone: zone,
   });
 }
 
@@ -20,6 +20,7 @@ function when(iso: string): string {
  */
 export function StatusStrip({ events }: { events: SystemEvent[] }) {
   const [open, setOpen] = useState(false);
+  const zone = useZone();
   if (events.length === 0) return null;
 
   const degraded = events.filter((e) => e.state === "open");
@@ -40,7 +41,7 @@ export function StatusStrip({ events }: { events: SystemEvent[] }) {
         <div className="strip-detail">
           {events.map((e) => (
             <div className={`strip-row ${e.state}`} key={e.id}>
-              <span className="mono t">{when(e.occurred_at)}</span>
+              <span className="mono t">{when(e.occurred_at, zone)}</span>
               <span className="h">{e.headline}</span>
               <span className="d">{e.detail?.replace(/^system · /, "")}</span>
             </div>

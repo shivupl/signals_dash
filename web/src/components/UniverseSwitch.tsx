@@ -22,7 +22,7 @@ export function UniverseSwitch({
       value: "core",
       label: "Watchlist",
       hint: watched
-        ? `Your hand-picked list — ${watched} names, flags at 30+`
+        ? `Your hand-picked list: ${watched} names, flags at 30+`
         : "Your hand-picked list, flags at 30+",
     },
     {
